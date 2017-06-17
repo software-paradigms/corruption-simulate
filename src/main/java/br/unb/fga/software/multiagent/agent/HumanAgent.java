@@ -26,16 +26,19 @@ public class HumanAgent extends Agent {
 	
 	private boolean isArested;
 	
-	private Double recompense;
+	private Double costOfPunishment;
 
 	@Override
 	protected void setup() {
 		super.setup();
 	}
 
+	/**
+	 * To see decision of agent each turn
+	 */
 	public boolean isCorrupt() {
 		Double corruptionMotivation = ((1 - getCorruptionAversion()) / getArrestProbabilityObserved());
-		boolean isCorruptInThisRound = corruptionMotivation > recompense;
+		boolean isCorruptInThisRound = corruptionMotivation > getCostOfPunishment();
 
 		return isCorruptInThisRound;
 	}
@@ -125,11 +128,11 @@ public class HumanAgent extends Agent {
 		this.isArested = isArested;
 	}
 
-	public Double getRecompense() {
-		return recompense;
+	public Double getCostOfPunishment() {
+		return costOfPunishment;
 	}
 
-	public void setRecompense(Double recompense) {
-		this.recompense = recompense;
+	public void setCostOfPunishment(Double costOfPunishment) {
+		this.costOfPunishment = costOfPunishment;
 	}
 }
