@@ -1,0 +1,10 @@
+out
+.classpath
+.project
+.settings
+.metadata
+.swp
+/target/
+/src/main/webapp/WEB-INF/classes/
+/bin/
+/eclipsesettings

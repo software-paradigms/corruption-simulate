@@ -1,8 +1,6 @@
 package br.unb.fga.software.multiagent;
 
-import java.util.Vector;
-
-import br.unb.fga.software.multiagent.agent.HumanAgent;
+import jade.core.Agent;
 
 public class Space {
 
@@ -25,6 +23,9 @@ public class Space {
 	 * Quantity of iterations 
 	 */
 	private Integer iterations;
-	
-	public Vector<HumanAgent> agents;
+
+	/*
+	 * All agents in simulation 
+	 */
+	public Agent [][] agents;
 }
