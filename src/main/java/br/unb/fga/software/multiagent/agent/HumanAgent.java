@@ -1,7 +1,9 @@
 package br.unb.fga.software.multiagent.agent;
 
+import br.unb.fga.software.multiagent.AgentState;
+import jade.core.AID;
 import jade.core.Agent;
-import jade.core.behaviours.TickerBehaviour;
+import jade.lang.acl.ACLMessage;
 
 public class HumanAgent extends Agent {
 
@@ -33,17 +35,11 @@ public class HumanAgent extends Agent {
 
 	@Override
 	protected void setup() {
-		addBehaviour(new TickerBehaviour(this, 10000) {
-			/**
-			 * 
-			 */
-			private static final long serialVersionUID = 1L;
-
-			@Override
-			protected void onTick() {
-				
-			}	
-		});
+		System.out.println("Trying send a msg");
+		ACLMessage stateInform = new ACLMessage(ACLMessage.INFORM);
+		stateInform.addReceiver(new AID("space", AID.ISLOCALNAME));
+		stateInform.setContent(AgentState.CORRUPT.getStateName());
+		send(stateInform);
 	}
 
 	/**

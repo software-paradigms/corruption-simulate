@@ -23,7 +23,7 @@ public class SpaceWindow extends JFrame {
 		super("Corrupt map Simulation");
 		setSize(500,500);
 		setLayout(new GridLayout(gridSize, gridSize));
-		panels = new Vector<>();
+		panels = new Vector<JPanel>();
 		mountPainel(gridSize);
 	}
 	
