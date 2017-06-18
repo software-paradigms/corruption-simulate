@@ -16,7 +16,7 @@ public class SpaceWindow extends JFrame {
 	public static final Color NEUTRAL = Color.BLACK;
 	public static final Color HONEST = Color.WHITE;
 	public static final Color ARRESTED = Color.YELLOW;
-	
+
 	private Vector<JPanel> panels;
 	
 	public SpaceWindow(Integer gridSize){

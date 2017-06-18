@@ -1,10 +1,13 @@
 package br.unb.fga.software.multiagent.agent;
 
 import jade.core.Agent;
+import jade.core.behaviours.TickerBehaviour;
 
 public class HumanAgent extends Agent {
 
 	private static final long serialVersionUID = 1L;
+	
+	public static final String INDEXES_SEPARATOR = "x"; 
 
 	// Between [0, 1], starts with average 0,5 and variance 0,25
 	private Double corruptionAversionInitial;
@@ -30,7 +33,17 @@ public class HumanAgent extends Agent {
 
 	@Override
 	protected void setup() {
-		super.setup();
+		addBehaviour(new TickerBehaviour(this, 10000) {
+			/**
+			 * 
+			 */
+			private static final long serialVersionUID = 1L;
+
+			@Override
+			protected void onTick() {
+				
+			}	
+		});
 	}
 
 	/**
