@@ -32,11 +32,20 @@ public class Space extends Agent {
 
 	@Override
 	protected void setup() {
+		Object[] args = getArguments();
+
+		if (args.length == 0) {
+			throw new IllegalArgumentException("You should pass one argument");
+		} else {
+			System.out.println("Starting with " + args[0]);
+			setIterations((Integer) args[0]);
+		}
+
 //		createAgents();
-		
+
 		// Should refresh simulation every time
 		addBehaviour(new TickerBehaviour(this, 1000) {
-			
+
 			private static final long serialVersionUID = 1L;
 
 			@Override
@@ -58,12 +67,8 @@ public class Space extends Agent {
 		PlatformController container = getContainerController();
 
 		for(int id = 0; id < (spaceLenght * spaceLenght); id++) {
-			// The nickName of class will be your
-			String nickName = (id % spaceLenght) + HumanAgent.INDEXES_SEPARATOR 
-					+ (id / spaceLenght);
-
 			try {
-				container.createNewAgent(nickName, HumanAgent.class.getName(), null);
+				container.createNewAgent(String.valueOf(id), HumanAgent.class.getName(), null);
 			} catch (ControllerException e) {
 				e.printStackTrace();
 			}
