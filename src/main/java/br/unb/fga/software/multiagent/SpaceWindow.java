@@ -17,22 +17,23 @@ public class SpaceWindow extends JFrame {
 	public static final Color HONEST = Color.WHITE;
 	public static final Color ARRESTED = Color.YELLOW;
 	
-	public SpaceWindow(Integer gridSize){
+	public SpaceWindow(Integer gridSize) {
 		super("Corrupt map Simulation");
 		setSize(500,500);
 		setLayout(new GridLayout(gridSize, gridSize));
+		System.out.println("Mounting window object");
 	}
 	
 	/**
 	 * Creates the grid with the colors referring to the status of the agents
 	 * @param color Get one with the list of colors that each agent will take. The matrix must be linearized
 	 */
-	public void mountPainel(Vector<Color> color) {
-		for (int i = 0; i < color.size(); i++) {
+	public void mountPainel(Vector<Color> colors) {
+		for (int i = 0; i < colors.size(); i++) {
 			JPanel p = new JPanel();
 			p.setBorder(BorderFactory.createLineBorder(Color.BLACK));
 			p.setSize(new Dimension(10, 10));
-			p.setBackground(color.get(i));
+			p.setBackground(colors.get(i));
 			add(p);
 		}
 	}

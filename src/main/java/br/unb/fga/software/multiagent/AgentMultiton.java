@@ -1,22 +1,21 @@
 package br.unb.fga.software.multiagent;
 
+import java.awt.Color;
 import java.util.HashMap;
 import java.util.Map;
 
-import br.unb.fga.software.multiagent.agent.HumanAgent;
-
 public class AgentMultiton {
-	private static Map<String, HumanAgent> agents;
+	private static Map<String, Color> agents;
 	
 	public AgentMultiton(Integer size) {
-		AgentMultiton.agents = new HashMap<String, HumanAgent>();
+		AgentMultiton.agents = new HashMap<String, Color>();
 	}
 	
-	public static void put(String key, HumanAgent agent) {
+	public static void put(String key, Color agent) {
 		AgentMultiton.agents.put(key, agent);
 	}
 	
-	public static HumanAgent get(String key) {
+	public static Color get(String key) {
 		return agents.get(key);
 	}
 }
