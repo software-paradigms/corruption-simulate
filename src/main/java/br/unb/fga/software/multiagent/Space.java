@@ -2,12 +2,8 @@ package br.unb.fga.software.multiagent;
 
 import br.unb.fga.software.multiagent.agent.HumanAgent;
 import jade.core.Agent;
-import jade.core.behaviours.ReceiverBehaviour;
-import jade.core.behaviours.ReceiverBehaviour.NotYetReady;
-import jade.core.behaviours.ReceiverBehaviour.TimedOut;
-import jade.core.behaviours.TickerBehaviour;
+import jade.core.behaviours.CyclicBehaviour;
 import jade.lang.acl.ACLMessage;
-import jade.lang.acl.MessageTemplate;
 import jade.wrapper.ControllerException;
 import jade.wrapper.PlatformController;
 
@@ -48,80 +44,63 @@ public class Space extends Agent {
 		if (args.length == 0) {
 			throw new IllegalArgumentException("You should pass one argument");
 		} else {
-			System.out.println("Starting with " + args[0]);
+			//System.out.println("Starting with " + args[0]);
 			setSpaceLenght(Integer.parseInt(args[0].toString()));
 		}
-
-		AgentMultiton.init(getOrder());
 		
 		// Creates all agents to fills square space
 		createAgents(getOrder());
 
 		final SpaceWindow space = new SpaceWindow(getSpaceLenght());
 		space.setVisible(true);
-
+		
 		// Should refresh simulation every time
-		addBehaviour(new TickerBehaviour(this, 2000) {
+		addBehaviour(new CyclicBehaviour(this) {
 
 			private static final long serialVersionUID = 1L;
 
 			@Override
-			protected void onTick() {
-				if (isFinish()) {
-					done();
-				} else {
-					if(!AgentMultiton.isEmpty()) {						
-						space.updatePainel(AgentMultiton.getAll());
+			public void action() {
+				ACLMessage msg = receive();
+				
+				if(msg != null) {
+					String agentId = msg.getSender().getLocalName();
+					String msgState = msg.getContent();
+					
+					//System.out.println("Receiving state from: " + agentId);
+					
+					switch(AgentState.getByString(msgState)) {
+						case CORRUPT:
+							AgentMultiton.update(agentId, SpaceWindow.CORRUPT);
+							break;
+						case NEUTRAL:
+							AgentMultiton.update(agentId, SpaceWindow.NEUTRAL);
+							break;
+						case HONEST:
+							AgentMultiton.update(agentId, SpaceWindow.HONEST);
+							break;
+						case ARRESTED:
+							AgentMultiton.update(agentId, SpaceWindow.ARRESTED);
+							break;
 					}
 				}
-			}
-
-			private boolean isFinish() {
-				return false;
+				
+				//System.out.println("Entrando");
+				if(!AgentMultiton.isEmpty()) {	
+					space.updatePainel(AgentMultiton.getAllColors());
+				}
 			}
 		});
-		
-		MessageTemplate messageTemplate = MessageTemplate.MatchPerformative(ACLMessage.INFORM);
-		ReceiverBehaviour b = new ReceiverBehaviour(this, 1000, messageTemplate);
-
-		if(b.done()) {
-			String agentId = null;
-			String msgState = null;
-			
-			try {
-				agentId = b.getMessage().getSender().getLocalName();
-				msgState = b.getMessage().getContent();
-			} catch (TimedOut e) {
-				e.printStackTrace();
-			} catch (NotYetReady e) {
-				e.printStackTrace();
-			}
-
-			System.out.println("Receiving state from: " + agentId);
-			
-			switch(AgentState.getByString(msgState)) {
-				case CORRUPT:
-					AgentMultiton.put(agentId, SpaceWindow.CORRUPT);
-					break;
-				case NEUTRAL:
-					AgentMultiton.put(agentId, SpaceWindow.NEUTRAL);
-					break;
-				case HONEST:
-					AgentMultiton.put(agentId, SpaceWindow.HONEST);
-					break;
-				case ARRESTED:
-					AgentMultiton.put(agentId, SpaceWindow.ARRESTED);
-					break;
-			}
-		}
 	}
 
 	private void createAgents(Integer order) {
+		AgentMultiton.clear();
 		for(int id = 0; id < order; id++) {
 			try {
-				System.out.println("Agent: " + HumanAgent.class.getName());
+				//System.out.println("Agent: " + HumanAgent.class.getName());
 				System.out.println("Agent id: " + String.valueOf(id));
-				container.createNewAgent(String.valueOf(id), HumanAgent.class.getName(), null);
+				container.createNewAgent(String.valueOf(id), HumanAgent.class.getName(), null).start();
+				AgentMultiton.put(String.valueOf(id));
 			} catch (ControllerException e) {
 				e.printStackTrace();
 			}
