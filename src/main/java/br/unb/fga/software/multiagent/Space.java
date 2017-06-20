@@ -2,10 +2,14 @@ package br.unb.fga.software.multiagent;
 
 import br.unb.fga.software.multiagent.agent.HumanAgent;
 import jade.core.Agent;
+import jade.core.Profile;
+import jade.core.ProfileImpl;
+import jade.core.Runtime;
 import jade.core.behaviours.CyclicBehaviour;
 import jade.lang.acl.ACLMessage;
-import jade.wrapper.ControllerException;
+import jade.wrapper.AgentContainer;
 import jade.wrapper.PlatformController;
+import jade.wrapper.StaleProxyException;
 
 public class Space extends Agent {
 
@@ -34,11 +38,11 @@ public class Space extends Agent {
 	private Integer actualIteration;
 
 	private PlatformController container;
-
+	
 	@Override
 	protected void setup() {
 		this.container = getContainerController();
-
+		
 		Object[] args = getArguments();
 
 		if (args.length == 0) {
@@ -96,14 +100,19 @@ public class Space extends Agent {
 	private void createAgents(Integer order) {
 		AgentMultiton.clear();
 		for(int id = 0; id < order; id++) {
+			Profile profile = new ProfileImpl(true);
+
+			// Now i can choose who will runs in this container
+			AgentContainer container = Runtime.instance().createAgentContainer(profile);
+
 			try {
-				//System.out.println("Agent: " + HumanAgent.class.getName());
-				System.out.println("Agent id: " + String.valueOf(id));
+				System.out.println("Creating agent id: " + String.valueOf(id));
 				container.createNewAgent(String.valueOf(id), HumanAgent.class.getName(), null).start();
-				AgentMultiton.put(String.valueOf(id));
-			} catch (ControllerException e) {
+			} catch (StaleProxyException e) {
 				e.printStackTrace();
 			}
+
+			AgentMultiton.put(String.valueOf(id));
 		}
 	}
 
