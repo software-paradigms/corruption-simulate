@@ -45,7 +45,7 @@ public class HumanAgent extends Agent {
 			protected void onTick() {
 				ACLMessage stateInform = new ACLMessage(ACLMessage.INFORM);
 				stateInform.addReceiver(new AID("space", AID.ISLOCALNAME));
-				stateInform.setContent(AgentState.CORRUPT.getStateName());
+				stateInform.setContent(AgentState.ARRESTED.getStateName());
 				send(stateInform);
 			}
 		});
