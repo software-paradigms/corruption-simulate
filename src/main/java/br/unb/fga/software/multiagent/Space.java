@@ -95,6 +95,8 @@ public class Space extends Agent {
 	}
 
 	private void createAgents() {
+		Integer row = spaceLenght;
+		String[] params = {row.toString()};
 		AgentMultiton.clear();
 		// Now i can choose who will runs in this container
 		ArrayList<AgentContainer> containers = createContainers();
@@ -111,7 +113,7 @@ public class Space extends Agent {
 
 				try {
 					System.out.println("Creating agent id: " + String.valueOf(id));
-					container.createNewAgent(String.valueOf(id), HumanAgent.class.getName(), null).start();
+					container.createNewAgent(String.valueOf(id), HumanAgent.class.getName(), params).start();
 				} catch (StaleProxyException e) {
 					e.printStackTrace();
 				}

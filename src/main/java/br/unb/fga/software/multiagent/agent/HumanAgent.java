@@ -47,11 +47,16 @@ public class HumanAgent extends Agent {
 	private Double costOfPunishment;
 	
 	private boolean iterationFinished;
+
+	private Vector<Integer> neighborhood;
 	
 	private Map<Integer, NeighborStatus> neighborsStatus;
 
 	@Override
 	protected void setup() {
+
+		getNeighborhood();
+		
 		Random randomGenerator = new Random();
 		setCorruptionAversionInitial((randomGenerator.nextGaussian() * AVERSION_VARIENCE) + AVERSION_MEAN);
 		
@@ -240,4 +245,50 @@ public class HumanAgent extends Agent {
 	public void setCostOfPunishment(Double costOfPunishment) {
 		this.costOfPunishment = costOfPunishment;
 	}
+
+	private void getNeighborhood(){
+		neighborhood = new Vector<Integer>();
+		
+		int agentPosition = Integer.parseInt(getAID().getLocalName());		
+		int row = (int) Math.sqrt(Double.parseDouble(getArguments()[0].toString()));
+
+		int px = agentPosition % row;
+		int py = agentPosition / row;
+		
+		// NL
+		if(validNeigboarhood(px - 1, py - 1, row))
+			neighborhood.add(calcNeigboarhood(px, py, row));
+		// N
+		if(validNeigboarhood(px, py - 1, row))
+			neighborhood.add(calcNeigboarhood(px, py, row));
+		// NW
+		if(validNeigboarhood(px + 1, py - 1, row))
+			neighborhood.add(calcNeigboarhood(px, py, row));
+		// W
+		if(validNeigboarhood(px + 1, py, row))
+			neighborhood.add(calcNeigboarhood(px, py, row));
+		// SW
+		if(validNeigboarhood(px + 1, py + 1, row))
+			neighborhood.add(calcNeigboarhood(px, py, row));
+		// S
+		if(validNeigboarhood(px, py + 1, row))
+			neighborhood.add(calcNeigboarhood(px, py, row));
+		// SL
+		if(validNeigboarhood(px - 1, py + 1, row))
+			neighborhood.add(calcNeigboarhood(px, py, row));
+		// L
+		if(validNeigboarhood(px - 1, py, row))
+			neighborhood.add(calcNeigboarhood(px, py, row));
+		
+	}
+
+	private boolean validNeigboarhood(int px, int py, int line){
+		return (px - 1 < 0) || (py - 1 < 0)
+				|| (px + 1 == line) || (py + 1 == line);
+	}
+
+	private Integer calcNeigboarhood(int px, int py, int line){
+		return py * line + px;
+	}
+
 }
