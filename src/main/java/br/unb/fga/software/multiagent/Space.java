@@ -136,15 +136,6 @@ public class Space extends Agent {
 		return containers;
 	}
 
-	/**
-	 * Order of agent grid
-	 * 
-	 * @return {@link #getSpaceLenght()} ** 2 
-	 */
-	private Integer getOrder() {
-		return getSpaceLenght() * getSpaceLenght();
-	}
-	
 	public Double[][] getArrestProbability() {
 		return arrestProbability;
 	}
