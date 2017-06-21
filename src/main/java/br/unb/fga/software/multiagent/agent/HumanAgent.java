@@ -1,15 +1,14 @@
 package br.unb.fga.software.multiagent.agent;
 
 import java.util.HashMap;
-import java.util.Hashtable;
 import java.util.Map;
 import java.util.Random;
 
 import br.unb.fga.software.multiagent.AgentState;
 import jade.core.AID;
 import jade.core.Agent;
-import jade.core.behaviours.CyclicBehaviour;
-import jade.core.behaviours.OneShotBehaviour;
+import jade.core.behaviours.ParallelBehaviour;
+import jade.core.behaviours.SimpleBehaviour;
 import jade.core.behaviours.TickerBehaviour;
 import jade.lang.acl.ACLMessage;
 
@@ -41,23 +40,24 @@ public class HumanAgent extends Agent {
 
 	// Rate arrest observed arround
 	private Double dangerOfArrest;
-	
+
+	private Double costOfPunishment = 0.6;
+
 	private AgentState currentState;
-	
-	private Double costOfPunishment;
-	
+
 	private boolean iterationFinished;
-	
+
 	private Map<Integer, NeighborStatus> neighborsStatus;
+	
+	private int neighborsLenght;
 
 	@Override
 	protected void setup() {
-		Random randomGenerator = new Random();
-		setCorruptionAversionInitial((randomGenerator.nextGaussian() * AVERSION_VARIENCE) + AVERSION_MEAN);
-		
-		neighborsStatus = new HashMap<Integer, NeighborStatus>();
-		
-		addBehaviour(new OneShotBehaviour() {
+
+		setUpIteration();
+
+		// Need Runs after each iteration
+		SimpleBehaviour observesNeighborsBehaviour = new SimpleBehaviour() {
 			private static final long serialVersionUID = 1L;
 
 			@Override
@@ -74,13 +74,19 @@ public class HumanAgent extends Agent {
 						// Se ele já tem o parametro, então já enviou, não precisa pedir!!!
 					}
 				}
+				this.block();
 			}
-		});
-		
+
+			@Override
+			public boolean done() {
+				return neighborsStatus.size() == neighborsLenght;
+			}
+		};
+
 		/*
 		 *  When a neighbor claims agent parameters, this agent should respond this.
 		 */
-		addBehaviour(new CyclicBehaviour() {
+		SimpleBehaviour dataNeighborBehaviour = new SimpleBehaviour() {
 			private static final long serialVersionUID = 1L;
 
 			@Override
@@ -111,9 +117,18 @@ public class HumanAgent extends Agent {
 
 				neighborsStatus.put(agentID, neighborStatus);
 			}
-		});
-		
-		// Should refresh simulation every time
+
+			@Override
+			public boolean done() {
+				return neighborsStatus.size() == neighborsLenght;
+			}
+		};
+
+		final ParallelBehaviour parallelBehaviour = new ParallelBehaviour(ParallelBehaviour.WHEN_ALL);
+		parallelBehaviour.addSubBehaviour(observesNeighborsBehaviour);
+		parallelBehaviour.addSubBehaviour(dataNeighborBehaviour);
+
+		// Should refresh simulation every time, should be syncronized with
 		addBehaviour(new TickerBehaviour(this, 1000) {
 
 			private static final long serialVersionUID = 1L;
@@ -125,9 +140,59 @@ public class HumanAgent extends Agent {
 					stateInform.addReceiver(new AID("space", AID.ISLOCALNAME));
 					stateInform.setContent(getCurrentState().getStateName());
 					send(stateInform);
+					if(parallelBehaviour.done()) {
+						setUpIteration();
+					}
+					parallelBehaviour.reset();
 				}
 			}
 		});
+	}
+
+	private void setUpIteration() {
+		setCorruptionAversionInitial();
+		setCorruptionAversionAround();
+		setCorruptionRate();
+		setArrestProbabilityObserved();
+		neighborsStatus = new HashMap<Integer, NeighborStatus>();
+
+		// should be runs after neighborsStatus are finished
+		int corrupts = count(AgentState.CORRUPT);
+		int arrested = count(AgentState.ARRESTED);
+		int honests = count(AgentState.HONEST);
+
+		setDangerOfArrest(corrupts, arrested, honests);
+		setArrestProbabilityObserved();
+		
+		if(isCorrupt()) {
+			setCurrentState(AgentState.CORRUPT);			
+		} else {
+			setCurrentState(AgentState.HONEST);
+		}
+	}
+
+	private int count(AgentState corrupt) {
+		int count = 0;
+
+		for(NeighborStatus ns : neighborsStatus.values()) {
+			if(ns.getState() == corrupt) {
+				count++;
+			}
+		}
+
+		return count;
+	}
+
+	private Double calculateAversionArround() {
+		Double average = 0.0;
+
+		for(NeighborStatus neighborStatus : neighborsStatus.values()) {
+			average += neighborStatus.getCorruptionAversion();
+		}
+
+		average = average / 2;
+
+		return average;
 	}
 
 	/**
@@ -152,14 +217,10 @@ public class HumanAgent extends Agent {
 		return corruptionAversionInitial;
 	}
 
-	/**
-	 * TODO
-	 * 
-	 * Changes to random setup, starting with average 0,5 and variance 0,25
-	 */
-	@Deprecated
-	public void setCorruptionAversionInitial(Double corruptionAversionInitial) {
-		this.corruptionAversionInitial = corruptionAversionInitial;
+	public void setCorruptionAversionInitial() {
+		Random randomGenerator = new Random();
+		this.corruptionAversionInitial = 
+				(randomGenerator.nextGaussian() * AVERSION_VARIENCE) + AVERSION_MEAN;
 	}
 
 	public Double getCorruptionAversion() {
@@ -188,13 +249,8 @@ public class HumanAgent extends Agent {
 		return corruptionAversionAround;
 	}
 
-	/**
-	 * TODO
-	 * Setup this automatically.
-	 * Averages of corruputionAversion around. 
-	 */
-	public void setCorruptionAversionAround(Double corruptionAversionAround) {
-		this.corruptionAversionAround = corruptionAversionAround;
+	public void setCorruptionAversionAround() {
+		this.corruptionAversionAround = calculateAversionArround();
 	}
 
 	public Double getArrestProbabilityObserved() {
@@ -214,11 +270,7 @@ public class HumanAgent extends Agent {
 	}
 
 	/**
-	 * Setup rate of 
-	 * 
-	 * @param corrupts
-	 * @param arrestedCorrupts
-	 * @param honests
+	 * Setup rate of danger of arest
 	 */
 	public void setDangerOfArrest(Integer corrupts, Integer arrestCorrupted , Integer honests) {
 		this.dangerOfArrest =  (arrestCorrupted.doubleValue() 
