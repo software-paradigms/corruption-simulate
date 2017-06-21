@@ -3,6 +3,7 @@ package br.unb.fga.software.multiagent.agent;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
+import java.util.Vector;
 
 import br.unb.fga.software.multiagent.AgentState;
 import jade.core.AID;
@@ -45,17 +46,18 @@ public class HumanAgent extends Agent {
 
 	private AgentState currentState;
 
-	private boolean iterationFinished;
-
-	private Map<Integer, NeighborStatus> neighborsStatus;
+	private Vector<Integer> neighborhood;
 	
-	private int neighborsLenght;
+	private Map<Integer, NeighborStatus> neighborsStatus;
 
 	@Override
 	protected void setup() {
+		// Find id of all neighbors 
+		setNeighborhood();
 
+		// Update needed params
 		setUpIteration();
-
+		
 		// Need Runs after each iteration
 		SimpleBehaviour observesNeighborsBehaviour = new SimpleBehaviour() {
 			private static final long serialVersionUID = 1L;
@@ -74,12 +76,11 @@ public class HumanAgent extends Agent {
 						// Se ele já tem o parametro, então já enviou, não precisa pedir!!!
 					}
 				}
-				this.block();
 			}
 
 			@Override
 			public boolean done() {
-				return neighborsStatus.size() == neighborsLenght;
+				return neighborsStatus.size() == neighborhood.size();
 			}
 		};
 
@@ -120,7 +121,7 @@ public class HumanAgent extends Agent {
 
 			@Override
 			public boolean done() {
-				return neighborsStatus.size() == neighborsLenght;
+				return neighborsStatus.size() == neighborhood.size();
 			}
 		};
 
@@ -135,14 +136,14 @@ public class HumanAgent extends Agent {
 
 			@Override
 			protected void onTick() {
-				if(iterationFinished) {
+				if(parallelBehaviour.done()) {
+					setUpIteration();
+
 					ACLMessage stateInform = new ACLMessage(ACLMessage.INFORM);
 					stateInform.addReceiver(new AID("space", AID.ISLOCALNAME));
 					stateInform.setContent(getCurrentState().getStateName());
 					send(stateInform);
-					if(parallelBehaviour.done()) {
-						setUpIteration();
-					}
+
 					parallelBehaviour.reset();
 				}
 			}
@@ -292,4 +293,49 @@ public class HumanAgent extends Agent {
 	public void setCostOfPunishment(Double costOfPunishment) {
 		this.costOfPunishment = costOfPunishment;
 	}
+
+	private void setNeighborhood(){
+		neighborhood = new Vector<Integer>();
+
+		int agentPosition = Integer.parseInt(getAID().getLocalName());		
+		int row = (int) Math.sqrt(Double.parseDouble(getArguments()[0].toString()));
+
+		int px = agentPosition % row;
+		int py = agentPosition / row;
+
+		// NL
+		if(validNeigboarhood(px - 1, py - 1, row))
+			neighborhood.add(calcNeigboarhood(px, py, row));
+		// N
+		if(validNeigboarhood(px, py - 1, row))
+			neighborhood.add(calcNeigboarhood(px, py, row));
+		// NW
+		if(validNeigboarhood(px + 1, py - 1, row))
+			neighborhood.add(calcNeigboarhood(px, py, row));
+		// W
+		if(validNeigboarhood(px + 1, py, row))
+			neighborhood.add(calcNeigboarhood(px, py, row));
+		// SW
+		if(validNeigboarhood(px + 1, py + 1, row))
+			neighborhood.add(calcNeigboarhood(px, py, row));
+		// S
+		if(validNeigboarhood(px, py + 1, row))
+			neighborhood.add(calcNeigboarhood(px, py, row));
+		// SL
+		if(validNeigboarhood(px - 1, py + 1, row))
+			neighborhood.add(calcNeigboarhood(px, py, row));
+		// L
+		if(validNeigboarhood(px - 1, py, row))
+			neighborhood.add(calcNeigboarhood(px, py, row));
+	}
+
+	private boolean validNeigboarhood(int px, int py, int line){
+		return (px - 1 < 0) || (py - 1 < 0)
+				|| (px + 1 == line) || (py + 1 == line);
+	}
+
+	private Integer calcNeigboarhood(int px, int py, int line){
+		return py * line + px;
+	}
+
 }

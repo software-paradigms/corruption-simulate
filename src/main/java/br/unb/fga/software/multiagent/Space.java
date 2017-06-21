@@ -8,6 +8,7 @@ import jade.core.Profile;
 import jade.core.ProfileImpl;
 import jade.core.Runtime;
 import jade.core.behaviours.CyclicBehaviour;
+import jade.core.behaviours.TickerBehaviour;
 import jade.lang.acl.ACLMessage;
 import jade.wrapper.AgentContainer;
 import jade.wrapper.StaleProxyException;
@@ -86,7 +87,14 @@ public class Space extends Agent {
 						break;
 					}
 				}
+			}
+		});
+		
+		addBehaviour(new TickerBehaviour(this, 1000) {
+			private static final long serialVersionUID = 1L;
 
+			@Override
+			protected void onTick() {
 				if (!AgentMultiton.isEmpty()) {
 					space.updatePainel(AgentMultiton.getAllColors());
 				}
@@ -95,6 +103,8 @@ public class Space extends Agent {
 	}
 
 	private void createAgents() {
+		Integer row = spaceLenght;
+		String[] params = {row.toString()};
 		AgentMultiton.clear();
 		// Now i can choose who will runs in this container
 		ArrayList<AgentContainer> containers = createContainers();
@@ -111,7 +121,7 @@ public class Space extends Agent {
 
 				try {
 					System.out.println("Creating agent id: " + String.valueOf(id));
-					container.createNewAgent(String.valueOf(id), HumanAgent.class.getName(), null).start();
+					container.createNewAgent(String.valueOf(id), HumanAgent.class.getName(), params).start();
 				} catch (StaleProxyException e) {
 					e.printStackTrace();
 				}
