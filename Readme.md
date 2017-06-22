@@ -8,6 +8,14 @@ Cada agente possui a predisposição de agir de forma corrupta ou não, caso um 
 
 *Para formular sua decisão, primeiramente, o agente verifica a probabilidade de se deparar com um agente corrupto a partir de suas experiências passadas. Dada uma memória de tamanho N, A = n / N. Onde A é sua expectativa de encontrar um agente corrupto e n o número de vezes que encontrou um agente corrupto no passado. A percepção de sua probabilidade de ser capturado é dada por B=m/M, onde m é a quantidade de agentes de sua vizinhança que foram presos e M é a quantidade de agentes que atuaram de forma corrupta.* (COSTA, 2014)
 
+# Como executar
+
+Basta executar em dois terminais diferentes os seguintes comandos
+```
+mvn -Pjade-main exec:java
+mvn -Pjade-agent exec:java
+```
+
 # Referências
 
 http://www.cs.sjsu.edu/~pearce/modules/lectures/eco2/ca/corruption.htm
