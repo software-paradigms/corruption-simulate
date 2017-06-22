@@ -26,8 +26,8 @@ public class AgentMultiton {
 	public static void clear(){
 		agents.clear();
 	}
+
 	public static void put(String key) {
-		
 		AgentMultiton.agents.add(new AgentMultiton(key, Color.CYAN));
 	}
 
@@ -38,7 +38,7 @@ public class AgentMultiton {
 		}
 		return colors;
 	}
-	
+
 	public static void update(String key, Color agent) {
 		for (AgentMultiton agentMultiton : agents) {
 			if(agentMultiton.getId().equals(key))

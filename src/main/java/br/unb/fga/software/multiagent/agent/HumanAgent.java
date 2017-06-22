@@ -42,7 +42,7 @@ public class HumanAgent extends Agent {
 	// Rate arrest observed arround
 	private Double dangerOfArrest;
 
-	private Double costOfPunishment = 0.6;
+	private Double costOfPunishment = 2.2;
 
 	private AgentState currentState;
 
@@ -52,12 +52,9 @@ public class HumanAgent extends Agent {
 
 	@Override
 	protected void setup() {
-		// Find id of all neighbors 
-		setNeighborhood();
-
-		// Update needed params
-		setUpIteration();
 		
+		setInitialAgentAttributes();
+
 		// Need Runs after each iteration
 		SimpleBehaviour observesNeighborsBehaviour = new SimpleBehaviour() {
 			private static final long serialVersionUID = 1L;
@@ -65,7 +62,7 @@ public class HumanAgent extends Agent {
 			@Override
 			public void action() {
 				// Request parameter tokens and send your self parameters
-				for(Integer neighborID : neighborsStatus.keySet()) {
+				for(Integer neighborID : neighborhood) {
 					// If this status is null, means that he never response to him
 					if(neighborsStatus.get(neighborID) == null) {
 						ACLMessage requestToken = new ACLMessage(ACLMessage.INFORM);
@@ -93,8 +90,13 @@ public class HumanAgent extends Agent {
 			@Override
 			public void action() {
 				ACLMessage tokenResponse = receive();
+				
+				System.out.println(getLocalName() + ": my neighbors are " 
+						+ neighborhood.size());
+				System.out.println(getLocalName() + ": my neighbors known are " 
+						+ neighborsStatus.size());
 
-				if(tokenResponse != null) {
+				if(tokenResponse != null && !tokenResponse.getSender().getLocalName().equals("ams")) {
 					updateNeighborStatus(tokenResponse);
 
 					// Now reply to this sender
@@ -114,7 +116,7 @@ public class HumanAgent extends Agent {
 				String[] token = tokenResponse.getContent().split(PARAMS_SEPARATOR);
 
 				NeighborStatus neighborStatus = new NeighborStatus(Double.valueOf(token[0]), 
-						AgentState.valueOf(token[1]));
+						AgentState.getByString(token[1]));
 
 				neighborsStatus.put(agentID, neighborStatus);
 			}
@@ -129,6 +131,8 @@ public class HumanAgent extends Agent {
 		parallelBehaviour.addSubBehaviour(observesNeighborsBehaviour);
 		parallelBehaviour.addSubBehaviour(dataNeighborBehaviour);
 
+		addBehaviour(parallelBehaviour);
+
 		// Should refresh simulation every time, should be syncronized with
 		addBehaviour(new TickerBehaviour(this, 1000) {
 
@@ -141,32 +145,54 @@ public class HumanAgent extends Agent {
 
 					ACLMessage stateInform = new ACLMessage(ACLMessage.INFORM);
 					stateInform.addReceiver(new AID("space", AID.ISLOCALNAME));
+
+					System.out.println("Agent " + getLocalName() 
+						+ " is " + getCurrentState().getStateName());
+					
 					stateInform.setContent(getCurrentState().getStateName());
 					send(stateInform);
 
-					parallelBehaviour.reset();
+					neighborsStatus.clear();
+					parallelBehaviour.restart();
 				}
 			}
 		});
 	}
 
-	private void setUpIteration() {
+	private void setInitialAgentAttributes() {
 		setCorruptionAversionInitial();
+
+		this.corruptionRate = getCorruptionAversion();
+
+		this.arrestProbabilityObserved = 0.0;
+
+		// Find all neighbors 
+		setNeighborhood(getLocalName());
+
+		if(getCorruptionAversionInitial() < 0.2) {
+			setCurrentState(AgentState.CORRUPT);
+		} else {
+			setCurrentState(AgentState.HONEST);
+		}
+
+		this.neighborsStatus = new HashMap<Integer, NeighborStatus>(neighborhood.size());
+
+		setDangerOfArrest();
+
+		System.out.println("I'm agent " + getLocalName() 
+			+ " and I have the follow neighbors: " + neighborhood.toString());
+	}
+
+	private void setUpIteration() {
 		setCorruptionAversionAround();
 		setCorruptionRate();
 		setArrestProbabilityObserved();
-		neighborsStatus = new HashMap<Integer, NeighborStatus>();
 
-		// should be runs after neighborsStatus are finished
-		int corrupts = count(AgentState.CORRUPT);
-		int arrested = count(AgentState.ARRESTED);
-		int honests = count(AgentState.HONEST);
-
-		setDangerOfArrest(corrupts, arrested, honests);
+		setDangerOfArrest();
 		setArrestProbabilityObserved();
 		
 		if(isCorrupt()) {
-			setCurrentState(AgentState.CORRUPT);			
+			setCurrentState(AgentState.CORRUPT);
 		} else {
 			setCurrentState(AgentState.HONEST);
 		}
@@ -222,6 +248,9 @@ public class HumanAgent extends Agent {
 		Random randomGenerator = new Random();
 		this.corruptionAversionInitial = 
 				(randomGenerator.nextGaussian() * AVERSION_VARIENCE) + AVERSION_MEAN;
+
+		// init as initial
+		this.corruptionAversion = this.corruptionAversionInitial;
 	}
 
 	public Double getCorruptionAversion() {
@@ -273,9 +302,13 @@ public class HumanAgent extends Agent {
 	/**
 	 * Setup rate of danger of arest
 	 */
-	public void setDangerOfArrest(Integer corrupts, Integer arrestCorrupted , Integer honests) {
-		this.dangerOfArrest =  (arrestCorrupted.doubleValue() 
-				+ honests.doubleValue()) / (corrupts.doubleValue() + 1);
+	public void setDangerOfArrest() {
+		// should be runs after neighborsStatus are finished
+		int corrupts = count(AgentState.CORRUPT);
+		int arrested = count(AgentState.ARRESTED);
+		int honests = count(AgentState.HONEST);
+
+		this.dangerOfArrest =  (double) (arrested + honests) / (corrupts + 1);
 	}
 
 	public AgentState getCurrentState() {
@@ -294,48 +327,55 @@ public class HumanAgent extends Agent {
 		this.costOfPunishment = costOfPunishment;
 	}
 
-	private void setNeighborhood(){
+	public Vector<Integer> setNeighborhood(String agentID) {
 		neighborhood = new Vector<Integer>();
 
-		int agentPosition = Integer.parseInt(getAID().getLocalName());		
-		int row = (int) Math.sqrt(Double.parseDouble(getArguments()[0].toString()));
+		Double agentPosition = Double.parseDouble(agentID);		
+		Double gridOrder = Double.parseDouble(getArguments()[0].toString());
 
-		int px = agentPosition % row;
-		int py = agentPosition / row;
+		Double lineDouble = agentPosition / gridOrder;
+		int line = lineDouble.intValue();
+
+		int col = (int) (agentPosition % gridOrder);
+
+		int row = gridOrder.intValue();
 
 		// NL
-		if(validNeigboarhood(px - 1, py - 1, row))
-			neighborhood.add(calcNeigboarhood(px, py, row));
+		if(validNeigboarhood(col - 1, line - 1, row))
+			neighborhood.add(calcNeigboarhood(col-1, line-1, row));
 		// N
-		if(validNeigboarhood(px, py - 1, row))
-			neighborhood.add(calcNeigboarhood(px, py, row));
+		if(validNeigboarhood(col, line - 1, row))
+			neighborhood.add(calcNeigboarhood(col, line-1, row));
 		// NW
-		if(validNeigboarhood(px + 1, py - 1, row))
-			neighborhood.add(calcNeigboarhood(px, py, row));
+		if(validNeigboarhood(col + 1, line - 1, row))
+			neighborhood.add(calcNeigboarhood(col+1, line-1, row));
 		// W
-		if(validNeigboarhood(px + 1, py, row))
-			neighborhood.add(calcNeigboarhood(px, py, row));
+		if(validNeigboarhood(col + 1, line, row))
+			neighborhood.add(calcNeigboarhood(col+1, line, row));
 		// SW
-		if(validNeigboarhood(px + 1, py + 1, row))
-			neighborhood.add(calcNeigboarhood(px, py, row));
+		if(validNeigboarhood(col + 1, line + 1, row))
+			neighborhood.add(calcNeigboarhood(col+1, line+1, row));
 		// S
-		if(validNeigboarhood(px, py + 1, row))
-			neighborhood.add(calcNeigboarhood(px, py, row));
+		if(validNeigboarhood(col, line + 1, row))
+			neighborhood.add(calcNeigboarhood(col, line+1, row));
 		// SL
-		if(validNeigboarhood(px - 1, py + 1, row))
-			neighborhood.add(calcNeigboarhood(px, py, row));
+		if(validNeigboarhood(col - 1, line + 1, row))
+			neighborhood.add(calcNeigboarhood(col-1, line+1, row));
 		// L
-		if(validNeigboarhood(px - 1, py, row))
-			neighborhood.add(calcNeigboarhood(px, py, row));
+		if(validNeigboarhood(col - 1, line, row))
+			neighborhood.add(calcNeigboarhood(col-1, line, row));
+		
+		return neighborhood;
 	}
 
-	private boolean validNeigboarhood(int px, int py, int line){
-		return (px - 1 < 0) || (py - 1 < 0)
-				|| (px + 1 == line) || (py + 1 == line);
+	private boolean validNeigboarhood(int col, int line, int qtd) {
+		boolean basicCondition = (col >= 0) && (line >= 0) 
+				&& (col < qtd) && (line < qtd);
+		return basicCondition; 
 	}
 
-	private Integer calcNeigboarhood(int px, int py, int line){
-		return py * line + px;
+	private Integer calcNeigboarhood(int col, int line, int qtd) {
+		int location = (line * qtd) + col;
+		return location;
 	}
-
 }

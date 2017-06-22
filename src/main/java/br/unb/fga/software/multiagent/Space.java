@@ -73,18 +73,18 @@ public class Space extends Agent {
 					// System.out.println("Receiving state from: " + agentId);
 
 					switch (AgentState.getByString(msgState)) {
-					case CORRUPT:
-						AgentMultiton.update(agentId, SpaceWindow.CORRUPT);
-						break;
-					case NEUTRAL:
-						AgentMultiton.update(agentId, SpaceWindow.NEUTRAL);
-						break;
-					case HONEST:
-						AgentMultiton.update(agentId, SpaceWindow.HONEST);
-						break;
-					case ARRESTED:
-						AgentMultiton.update(agentId, SpaceWindow.ARRESTED);
-						break;
+						case CORRUPT:
+							AgentMultiton.update(agentId, SpaceWindow.CORRUPT);
+							break;
+						case NEUTRAL:
+							AgentMultiton.update(agentId, SpaceWindow.NEUTRAL);
+							break;
+						case HONEST:
+							AgentMultiton.update(agentId, SpaceWindow.HONEST);
+							break;
+						case ARRESTED:
+							AgentMultiton.update(agentId, SpaceWindow.ARRESTED);
+							break;
 					}
 				}
 			}
@@ -105,7 +105,9 @@ public class Space extends Agent {
 	private void createAgents() {
 		Integer row = spaceLenght;
 		String[] params = {row.toString()};
+
 		AgentMultiton.clear();
+
 		// Now i can choose who will runs in this container
 		ArrayList<AgentContainer> containers = createContainers();
 
