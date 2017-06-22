@@ -2,8 +2,8 @@ package br.unb.fga.software.multiagent.agent;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Random;
 import java.util.Vector;
+import java.util.concurrent.ThreadLocalRandom;
 
 import br.unb.fga.software.multiagent.AgentState;
 import jade.core.AID;
@@ -16,9 +16,6 @@ import jade.lang.acl.ACLMessage;
 public class HumanAgent extends Agent {
 
 	private static final long serialVersionUID = 1L;
-	
-	private static final double AVERSION_MEAN = 0.5;
-	private static final double AVERSION_VARIENCE = 0.25; 
 	
 	public static final String INDEXES_SEPARATOR = "x";
 
@@ -134,7 +131,7 @@ public class HumanAgent extends Agent {
 		addBehaviour(parallelBehaviour);
 
 		// Should refresh simulation every time, should be syncronized with
-		addBehaviour(new TickerBehaviour(this, 1000) {
+		addBehaviour(new TickerBehaviour(this, 2000) {
 
 			private static final long serialVersionUID = 1L;
 
@@ -163,17 +160,17 @@ public class HumanAgent extends Agent {
 		setCorruptionAversionInitial();
 
 		this.corruptionRate = getCorruptionAversion();
-
-		this.arrestProbabilityObserved = 0.0;
-
-		// Find all neighbors 
-		setNeighborhood(getLocalName());
-
+		
 		if(getCorruptionAversionInitial() < 0.2) {
 			setCurrentState(AgentState.CORRUPT);
 		} else {
 			setCurrentState(AgentState.HONEST);
 		}
+
+		this.arrestProbabilityObserved = 0.0;
+
+		// Find all neighbors 
+		setNeighborhood(getLocalName());
 
 		this.neighborsStatus = new HashMap<Integer, NeighborStatus>(neighborhood.size());
 
@@ -245,9 +242,9 @@ public class HumanAgent extends Agent {
 	}
 
 	public void setCorruptionAversionInitial() {
-		Random randomGenerator = new Random();
-		this.corruptionAversionInitial = 
-				(randomGenerator.nextGaussian() * AVERSION_VARIENCE) + AVERSION_MEAN;
+		// distribution between 0.25 and 0.75
+		this.corruptionAversionInitial = ThreadLocalRandom
+				.current().nextDouble(0.25, 0.75);
 
 		// init as initial
 		this.corruptionAversion = this.corruptionAversionInitial;
