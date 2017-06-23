@@ -4,7 +4,6 @@ out
 .settings
 .metadata
 .swp
-/target/
 /src/main/webapp/WEB-INF/classes/
 /bin/
 /eclipsesettings
