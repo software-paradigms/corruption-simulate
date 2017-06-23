@@ -7,6 +7,7 @@ import java.util.Vector;
 import java.util.concurrent.ThreadLocalRandom;
 
 import br.unb.fga.software.multiagent.AgentState;
+import br.unb.fga.software.multiagent.Parallel;
 import jade.core.AID;
 import jade.core.Agent;
 import jade.core.behaviours.ParallelBehaviour;
@@ -60,7 +61,7 @@ public class HumanAgent extends Agent {
 		setInitialAgentAttributes();
 
 		// Need Runs after each iteration
-		SimpleBehaviour observesNeighborsBehaviour = new SimpleBehaviour() {
+		final SimpleBehaviour observesNeighborsBehaviour = new SimpleBehaviour() {
 			private static final long serialVersionUID = 1L;
 
 			@Override
@@ -95,8 +96,8 @@ public class HumanAgent extends Agent {
 			public void action() {
 				ACLMessage tokenResponse = receive();
 				
-				System.out.println(getLocalName() + ": my neighbors are " 
-						+ neighborhood.size());
+//				System.out.println(getLocalName() + ": my neighbors are " 
+//						+ neighborhood.size());
 
 				if(tokenResponse != null && !tokenResponse.getSender().getLocalName().equals("ams")) {
 					updateNeighborStatus(tokenResponse);
@@ -134,6 +135,8 @@ public class HumanAgent extends Agent {
 		parallelBehaviour.addSubBehaviour(dataNeighborBehaviour);
 
 		addBehaviour(parallelBehaviour);
+		
+		final HumanAgent human = this;
 
 		// Should refresh simulation every time, should be syncronized with
 		addBehaviour(new TickerBehaviour(this, 1000) {
@@ -150,8 +153,11 @@ public class HumanAgent extends Agent {
 					
 					stateInform.setContent(getCurrentState().getStateName());
 					send(stateInform);
+					
+					neighborsStatus.clear();
 
-					parallelBehaviour.restart();
+					parallelBehaviour.reset();
+					human.addBehaviour(parallelBehaviour);
 				}
 			}
 		});
