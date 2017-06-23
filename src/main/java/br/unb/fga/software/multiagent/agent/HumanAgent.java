@@ -1,13 +1,12 @@
 package br.unb.fga.software.multiagent.agent;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Vector;
 import java.util.concurrent.ThreadLocalRandom;
 
 import br.unb.fga.software.multiagent.AgentState;
-import br.unb.fga.software.multiagent.Parallel;
+import br.unb.fga.software.multiagent.IterationBehaviour;
 import jade.core.AID;
 import jade.core.Agent;
 import jade.core.behaviours.ParallelBehaviour;
@@ -25,7 +24,7 @@ public class HumanAgent extends Agent {
 
 	private static final Double TO_START_CORRUPT = 0.5;
 
-	private static final double ARRESTED_PROBABILITY = 0.5; 
+	private static final double ARRESTED_PROBABILITY = 0.6; 
 	
 	private final Double maxProbabilityToArrested = 0.8;
 	
@@ -95,11 +94,9 @@ public class HumanAgent extends Agent {
 			@Override
 			public void action() {
 				ACLMessage tokenResponse = receive();
-				
-//				System.out.println(getLocalName() + ": my neighbors are " 
-//						+ neighborhood.size());
 
-				if(tokenResponse != null && !tokenResponse.getSender().getLocalName().equals("ams")) {
+				if(tokenResponse != null && !tokenResponse.getSender().getLocalName().equals("ams") 
+						&& !tokenResponse.getSender().getLocalName().equals("space")) {
 					updateNeighborStatus(tokenResponse);
 
 					// Now reply to this sender
@@ -139,7 +136,7 @@ public class HumanAgent extends Agent {
 		final HumanAgent human = this;
 
 		// Should refresh simulation every time, should be syncronized with
-		addBehaviour(new TickerBehaviour(this, 1000) {
+		addBehaviour(new IterationBehaviour(this, 1000) {
 
 			private static final long serialVersionUID = 1L;
 
@@ -148,14 +145,18 @@ public class HumanAgent extends Agent {
 				if(parallelBehaviour.done()) {
 					setUpIteration();
 
+					isSyncronized(Integer.valueOf(getLocalName()));
+
 					ACLMessage stateInform = new ACLMessage(ACLMessage.INFORM);
 					stateInform.addReceiver(new AID("space", AID.ISLOCALNAME));
 					
 					stateInform.setContent(getCurrentState().getStateName());
 					send(stateInform);
-					
-					neighborsStatus.clear();
+				}
 
+				if(allSyncronized()) {
+					System.out.println(getLocalName() +" syncronized");
+					neighborsStatus.clear();
 					parallelBehaviour.reset();
 					human.addBehaviour(parallelBehaviour);
 				}
@@ -202,7 +203,7 @@ public class HumanAgent extends Agent {
 
 		setCurrentState(calculateCurrentState());
 
-		watchAgent(4);
+		watchAgent(2);
 	}
 	
 	private AgentState calculateCurrentState(){
@@ -222,8 +223,7 @@ public class HumanAgent extends Agent {
 	}
 
 	private double getRealArrestedCaptured() {
-		double p = getMaxProbabilityToArrested();
-		p *= (count(AgentState.HONEST) + 1.0)/(neighborhood.size() + 2);
+		double p = (count(AgentState.HONEST) + 1.0)/(neighborhood.size() + 2);
 		return p;
 	}
 
@@ -238,8 +238,6 @@ public class HumanAgent extends Agent {
 			System.out.println("pit = " + getArrestProbabilityObserved());
 			System.out.println("cit = " + getDangerOfArrest());
 			System.out.println("Pit = " + getRealArrestedCaptured());
-			for(NeighborStatus ns : neighborsStatus.values()) 
-				System.out.println("Vizinhos is " + ns.getState());
 			System.out.println("Corrupts is" + count(AgentState.CORRUPT));
 			System.out.println("Honests is" + count(AgentState.HONEST));
 			System.out.println("All is " + neighborhood.size());
@@ -284,6 +282,10 @@ public class HumanAgent extends Agent {
 	public boolean isCorrupt() {
 		Double corruptionMotivation = ((1 - getCorruptionAversion()) / getArrestProbabilityObserved());
 		boolean isCorruptInThisRound = corruptionMotivation > getCostOfPunishment();
+
+		if(getAgentState().equals(AgentState.CORRUPT) && !isCorruptInThisRound) {
+			System.out.println("Deixou de ser corrupto!");
+		}
 
 		return isCorruptInThisRound;
 	}

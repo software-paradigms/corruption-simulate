@@ -1,16 +1,11 @@
 package br.unb.fga.software.multiagent;
 
-import java.util.ArrayList;
-
 import br.unb.fga.software.multiagent.agent.HumanAgent;
+import jade.core.AID;
 import jade.core.Agent;
-import jade.core.Profile;
-import jade.core.ProfileImpl;
-import jade.core.Runtime;
 import jade.core.behaviours.CyclicBehaviour;
 import jade.core.behaviours.TickerBehaviour;
 import jade.lang.acl.ACLMessage;
-import jade.wrapper.AgentContainer;
 import jade.wrapper.StaleProxyException;
 
 public class Space extends Agent {
@@ -95,11 +90,16 @@ public class Space extends Agent {
 
 			@Override
 			protected void onTick() {
-				if (!AgentMultiton.isEmpty()) {
+				if (AgentMultiton.getAll().size() == getOrder()) {
 					space.updatePainel(AgentMultiton.getAllColors());
+					AgentMultiton.clear();
 				}
 			}
 		});
+	}
+
+	private int getOrder() {
+		return spaceLenght * spaceLenght;
 	}
 
 	private void createAgents() {
