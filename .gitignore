@@ -7,3 +7,4 @@ out
 /src/main/webapp/WEB-INF/classes/
 /bin/
 /eclipsesettings
+/target
