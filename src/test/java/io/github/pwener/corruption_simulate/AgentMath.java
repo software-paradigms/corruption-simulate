@@ -27,17 +27,17 @@ public class AgentMath {
 		HumanAgent h = new HumanAgent();
 		Map<Integer, NeighborStatus> nexts = new HashMap<Integer, NeighborStatus>();
 
-		nexts.put(0, new NeighborStatus(0.0, AgentState.HONEST));
-		nexts.put(1, new NeighborStatus(0.0, AgentState.ARRESTED));
-		nexts.put(2, new NeighborStatus(0.0, AgentState.CORRUPT));
-		nexts.put(3, new NeighborStatus(0.0, AgentState.CORRUPT));
-		nexts.put(4, new NeighborStatus(0.0, AgentState.CORRUPT));
-		nexts.put(5, new NeighborStatus(0.0, AgentState.CORRUPT));
+		nexts.put(0, new NeighborStatus(1.0, AgentState.HONEST));
+		nexts.put(1, new NeighborStatus(1.0, AgentState.ARRESTED));
+		nexts.put(2, new NeighborStatus(1.0, AgentState.CORRUPT));
+		nexts.put(3, new NeighborStatus(1.0, AgentState.CORRUPT));
+		nexts.put(4, new NeighborStatus(1.0, AgentState.CORRUPT));
+		nexts.put(5, new NeighborStatus(1.0, AgentState.CORRUPT));
 
 		h.setNeighborsStatus(nexts);
 		
 		h.setDangerOfArrest();
-		
+
 		System.out.println(h.getDangerOfArrest());
 	}
 }

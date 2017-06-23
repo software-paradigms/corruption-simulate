@@ -21,7 +21,7 @@ public class HumanAgent extends Agent {
 
 	protected static final String PARAMS_SEPARATOR = ";";
 
-	private static final Double TO_START_CORRUPT = 0.3; 
+	private static final Double TO_START_CORRUPT = 0.6; 
 
 	// Between [0, 1], starts with average 0,5 and variance 0,25
 	private Double corruptionAversionInitial;
@@ -41,9 +41,9 @@ public class HumanAgent extends Agent {
 	// Rate arrest observed arround
 	private Double dangerOfArrest;
 
-	private final Double costOfPunishment = 2.5;
-	
 	private final Double maxProbabilityToArrested = .8;
+	
+	private Double costOfPunishment = 1.2;
 
 	private AgentState currentState;
 
@@ -133,7 +133,7 @@ public class HumanAgent extends Agent {
 		addBehaviour(parallelBehaviour);
 
 		// Should refresh simulation every time, should be syncronized with
-		addBehaviour(new TickerBehaviour(this, 2000) {
+		addBehaviour(new TickerBehaviour(this, 2500) {
 
 			private static final long serialVersionUID = 1L;
 
@@ -148,7 +148,6 @@ public class HumanAgent extends Agent {
 					stateInform.setContent(getCurrentState().getStateName());
 					send(stateInform);
 
-					neighborsStatus.clear();
 					parallelBehaviour.restart();
 				}
 			}
@@ -186,11 +185,11 @@ public class HumanAgent extends Agent {
 		setCorruptionRate();
 		// ait
 		setCorruptionAversion();
-		
-		// pit
-		setArrestProbabilityObserved();
+
 		// cit
 		setDangerOfArrest();
+		// pit
+		setArrestProbabilityObserved();
 		
 		watchAgent(7);
 		
@@ -231,7 +230,7 @@ public class HumanAgent extends Agent {
 			System.out.println("Pit = " + getRealArrestedCaptured());
 		}
 	}
-
+	
 	private int count(AgentState state) {
 		int count = 0;
 
@@ -244,7 +243,7 @@ public class HumanAgent extends Agent {
 		return count;
 	}
 
-	private Double calculateAversionArround() {
+	public Double calculateAversionArround() {
 		Double average = 0.0;
 
 		for(NeighborStatus neighborStatus : neighborsStatus.values()) {
@@ -269,7 +268,7 @@ public class HumanAgent extends Agent {
 	 */
 	public boolean isCorrupt() {
 		Double corruptionMotivation = ((1 - getCorruptionAversion()) / getArrestProbabilityObserved());
-		boolean isCorruptInThisRound = corruptionMotivation >= getCostOfPunishment();
+		boolean isCorruptInThisRound = corruptionMotivation > getCostOfPunishment();
 
 		return isCorruptInThisRound;
 	}
@@ -341,8 +340,8 @@ public class HumanAgent extends Agent {
 		int corrupts = count(AgentState.CORRUPT);
 		int arrested = count(AgentState.ARRESTED);
 		int honests = count(AgentState.HONEST);
-
-		this.dangerOfArrest =  (double) (arrested + honests) / (corrupts + 1);
+		
+		this.dangerOfArrest =  (double) (honests) / (corrupts + 1);
 	}
 
 	public void setNeighborsStatus(Map<Integer, NeighborStatus> neighborsStatus) {
