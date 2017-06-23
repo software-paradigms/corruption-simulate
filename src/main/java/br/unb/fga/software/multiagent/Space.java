@@ -106,46 +106,17 @@ public class Space extends Agent {
 		Integer row = spaceLenght;
 		String[] params = {row.toString()};
 
-		AgentMultiton.clear();
+		AgentMultiton.clear();		
 
-		// Now i can choose who will runs in this container
-		ArrayList<AgentContainer> containers = createContainers();
-
-		int lastAgentID = 0;
-
-		int id = 0;
-
-		for (AgentContainer container : containers) {
-
-			lastAgentID += getSpaceLenght();
-
-			while(id < lastAgentID) {
-
-				try {
-					System.out.println("Creating agent id: " + String.valueOf(id));
-					container.createNewAgent(String.valueOf(id), HumanAgent.class.getName(), params).start();
-				} catch (StaleProxyException e) {
-					e.printStackTrace();
-				}
-
-				AgentMultiton.put(String.valueOf(id));
-
-				id++;
+		for (int id = 0; id < row * row; id++) {
+			try {
+				System.out.println("Creating agent id: " + String.valueOf(id));
+				getContainerController().createNewAgent(String.valueOf(id), HumanAgent.class.getName(), params).start();
+			} catch (StaleProxyException e) {
+				e.printStackTrace();
 			}
+			AgentMultiton.put(String.valueOf(id));
 		}
-	}
-
-	private ArrayList<AgentContainer> createContainers() {
-		ArrayList<AgentContainer> containers = new ArrayList<AgentContainer>();
-
-		for (int i = 0; i < getSpaceLenght(); i++) {
-			Profile profile = new ProfileImpl(true);
-			profile.setParameter(Profile.CONTAINER_NAME, "container-" + i);
-			AgentContainer container = Runtime.instance().createAgentContainer(profile);
-			containers.add(container);
-		}
-
-		return containers;
 	}
 
 	public Double[][] getArrestProbability() {
