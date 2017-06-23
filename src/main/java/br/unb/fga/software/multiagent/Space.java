@@ -1,11 +1,17 @@
 package br.unb.fga.software.multiagent;
 
+import java.util.ArrayList;
+
 import br.unb.fga.software.multiagent.agent.HumanAgent;
 import jade.core.Agent;
+import jade.core.Profile;
+import jade.core.ProfileImpl;
+import jade.core.Runtime;
 import jade.core.behaviours.CyclicBehaviour;
+import jade.core.behaviours.TickerBehaviour;
 import jade.lang.acl.ACLMessage;
-import jade.wrapper.ControllerException;
-import jade.wrapper.PlatformController;
+import jade.wrapper.AgentContainer;
+import jade.wrapper.StaleProxyException;
 
 public class Space extends Agent {
 
@@ -25,35 +31,32 @@ public class Space extends Agent {
 	 * Quantity of agents in this environment
 	 */
 	private Integer spaceLenght;
-	
-	/*
-	 * Quantity of iterations 
-	 */
-	private Integer iterations;
-	
-	private Integer actualIteration;
 
-	private PlatformController container;
+	/*
+	 * Quantity of iterations
+	 */
+	private Integer iterations = 0;
+
+	private Integer actualIteration;
 
 	@Override
 	protected void setup() {
-		this.container = getContainerController();
 
 		Object[] args = getArguments();
 
 		if (args.length == 0) {
 			throw new IllegalArgumentException("You should pass one argument");
 		} else {
-			//System.out.println("Starting with " + args[0]);
+			// System.out.println("Starting with " + args[0]);
 			setSpaceLenght(Integer.parseInt(args[0].toString()));
 		}
-		
+
 		// Creates all agents to fills square space
-		createAgents(getOrder());
+		createAgents();
 
 		final SpaceWindow space = new SpaceWindow(getSpaceLenght());
 		space.setVisible(true);
-		
+
 		// Should refresh simulation every time
 		addBehaviour(new CyclicBehaviour(this) {
 
@@ -62,14 +65,14 @@ public class Space extends Agent {
 			@Override
 			public void action() {
 				ACLMessage msg = receive();
-				
-				if(msg != null) {
+
+				if (msg != null) {
 					String agentId = msg.getSender().getLocalName();
 					String msgState = msg.getContent();
-					
-					//System.out.println("Receiving state from: " + agentId);
-					
-					switch(AgentState.getByString(msgState)) {
+
+					// System.out.println("Receiving state from: " + agentId);
+
+					switch (AgentState.getByString(msgState)) {
 						case CORRUPT:
 							AgentMultiton.update(agentId, SpaceWindow.CORRUPT);
 							break;
@@ -84,31 +87,65 @@ public class Space extends Agent {
 							break;
 					}
 				}
-				
-				//System.out.println("Entrando");
-				if(!AgentMultiton.isEmpty()) {	
+			}
+		});
+		
+		addBehaviour(new TickerBehaviour(this, 1000) {
+			private static final long serialVersionUID = 1L;
+
+			@Override
+			protected void onTick() {
+				if (!AgentMultiton.isEmpty()) {
 					space.updatePainel(AgentMultiton.getAllColors());
 				}
 			}
 		});
 	}
 
-	private void createAgents(Integer order) {
+	private void createAgents() {
+		Integer row = spaceLenght;
+		String[] params = {row.toString()};
+
 		AgentMultiton.clear();
-		for(int id = 0; id < order; id++) {
-			try {
-				//System.out.println("Agent: " + HumanAgent.class.getName());
-				System.out.println("Agent id: " + String.valueOf(id));
-				container.createNewAgent(String.valueOf(id), HumanAgent.class.getName(), null).start();
+
+		// Now i can choose who will runs in this container
+		ArrayList<AgentContainer> containers = createContainers();
+
+		int lastAgentID = 0;
+
+		int id = 0;
+
+		for (AgentContainer container : containers) {
+
+			lastAgentID += getSpaceLenght();
+
+			while(id < lastAgentID) {
+
+				try {
+					System.out.println("Creating agent id: " + String.valueOf(id));
+					container.createNewAgent(String.valueOf(id), HumanAgent.class.getName(), params).start();
+				} catch (StaleProxyException e) {
+					e.printStackTrace();
+				}
+
 				AgentMultiton.put(String.valueOf(id));
-			} catch (ControllerException e) {
-				e.printStackTrace();
+
+				id++;
 			}
 		}
 	}
 
-	private Integer getOrder() {
-		return getSpaceLenght() * getSpaceLenght();
+	private ArrayList<AgentContainer> createContainers() {
+		ArrayList<AgentContainer> containers = new ArrayList<AgentContainer>();
+
+		for (int i = 0; i < getSpaceLenght(); i++) {
+			Profile profile = new ProfileImpl(true);
+			profile.setParameter(Profile.CONTAINER_NAME, "container-" + i);
+			AgentContainer container = Runtime.instance().createAgentContainer(profile);
+			containers.add(container);
+		}
+
+		return containers;
 	}
 
 	public Double[][] getArrestProbability() {

@@ -1,8 +1,15 @@
 package br.unb.fga.software.multiagent.agent;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Vector;
+import java.util.concurrent.ThreadLocalRandom;
+
 import br.unb.fga.software.multiagent.AgentState;
 import jade.core.AID;
 import jade.core.Agent;
+import jade.core.behaviours.ParallelBehaviour;
+import jade.core.behaviours.SimpleBehaviour;
 import jade.core.behaviours.TickerBehaviour;
 import jade.lang.acl.ACLMessage;
 
@@ -10,7 +17,11 @@ public class HumanAgent extends Agent {
 
 	private static final long serialVersionUID = 1L;
 	
-	public static final String INDEXES_SEPARATOR = "x"; 
+	public static final String INDEXES_SEPARATOR = "x";
+
+	protected static final String PARAMS_SEPARATOR = ";";
+
+	private static final Double TO_START_CORRUPT = 0.3; 
 
 	// Between [0, 1], starts with average 0,5 and variance 0,25
 	private Double corruptionAversionInitial;
@@ -29,26 +40,208 @@ public class HumanAgent extends Agent {
 
 	// Rate arrest observed arround
 	private Double dangerOfArrest;
+
+	private Double costOfPunishment = 2.5;
+
+	private AgentState currentState;
+
+	private Vector<Integer> neighborhood;
 	
-	private boolean isArested;
-	
-	private Double costOfPunishment;
+	private Map<Integer, NeighborStatus> neighborsStatus;
 
 	@Override
 	protected void setup() {
-		// Should refresh simulation every time
-		addBehaviour(new TickerBehaviour(this, 1000) {
+		
+		setInitialAgentAttributes();
+
+		// Need Runs after each iteration
+		SimpleBehaviour observesNeighborsBehaviour = new SimpleBehaviour() {
+			private static final long serialVersionUID = 1L;
+
+			@Override
+			public void action() {
+				// Request parameter tokens and send your self parameters
+				for(Integer neighborID : neighborhood) {
+					// If this status is null, means that he never response to him
+					if(neighborsStatus.get(neighborID) == null) {
+						ACLMessage requestToken = new ACLMessage(ACLMessage.INFORM);
+						requestToken.addReceiver(new AID(neighborID.toString(), AID.ISLOCALNAME));
+						requestToken.setContent(getResponseToken());
+						send(requestToken);
+					} else {
+						// Se ele já tem o parametro, então já enviou, não precisa pedir!!!
+					}
+				}
+			}
+
+			@Override
+			public boolean done() {
+				return neighborsStatus.size() == neighborhood.size();
+			}
+		};
+
+		/*
+		 *  When a neighbor claims agent parameters, this agent should respond this.
+		 */
+		SimpleBehaviour dataNeighborBehaviour = new SimpleBehaviour() {
+			private static final long serialVersionUID = 1L;
+
+			@Override
+			public void action() {
+				ACLMessage tokenResponse = receive();
+				
+				System.out.println(getLocalName() + ": my neighbors are " 
+						+ neighborhood.size());
+
+				if(tokenResponse != null && !tokenResponse.getSender().getLocalName().equals("ams")) {
+					updateNeighborStatus(tokenResponse);
+
+					// Now reply to this sender
+					ACLMessage reply = tokenResponse.createReply();
+
+					String content = getResponseToken();
+					reply.setContent(content);
+				}
+			}
+
+			/**
+			 * To understand token, see bellow method getResponseToken()
+			 */
+			private void updateNeighborStatus(ACLMessage tokenResponse) {
+				Integer agentID = Integer.valueOf(tokenResponse.getSender().getLocalName());
+
+				String[] token = tokenResponse.getContent().split(PARAMS_SEPARATOR);
+
+				NeighborStatus neighborStatus = new NeighborStatus(Double.valueOf(token[0]), 
+						AgentState.getByString(token[1]));
+
+				neighborsStatus.put(agentID, neighborStatus);
+			}
+
+			@Override
+			public boolean done() {
+				return neighborsStatus.size() == neighborhood.size();
+			}
+		};
+
+		final ParallelBehaviour parallelBehaviour = new ParallelBehaviour(ParallelBehaviour.WHEN_ALL);
+		parallelBehaviour.addSubBehaviour(observesNeighborsBehaviour);
+		parallelBehaviour.addSubBehaviour(dataNeighborBehaviour);
+
+		addBehaviour(parallelBehaviour);
+
+		// Should refresh simulation every time, should be syncronized with
+		addBehaviour(new TickerBehaviour(this, 2000) {
 
 			private static final long serialVersionUID = 1L;
 
 			@Override
 			protected void onTick() {
-				ACLMessage stateInform = new ACLMessage(ACLMessage.INFORM);
-				stateInform.addReceiver(new AID("space", AID.ISLOCALNAME));
-				stateInform.setContent(AgentState.CORRUPT.getStateName());
-				send(stateInform);
+				if(parallelBehaviour.done()) {
+					setUpIteration();
+
+					ACLMessage stateInform = new ACLMessage(ACLMessage.INFORM);
+					stateInform.addReceiver(new AID("space", AID.ISLOCALNAME));
+					
+					stateInform.setContent(getCurrentState().getStateName());
+					send(stateInform);
+
+					neighborsStatus.clear();
+					parallelBehaviour.restart();
+				}
 			}
 		});
+	}
+
+	private void setInitialAgentAttributes() {
+		setCorruptionAversionInitial();
+
+		this.corruptionRate = getCorruptionAversion();
+		
+		if(getCorruptionAversionInitial() < TO_START_CORRUPT) {
+			setCurrentState(AgentState.CORRUPT);
+		} else {
+			setCurrentState(AgentState.HONEST);
+		}
+
+		this.arrestProbabilityObserved = 1.0;
+
+		// Find all neighbors 
+		setNeighborhood(getLocalName());
+
+		this.neighborsStatus = new HashMap<Integer, NeighborStatus>(neighborhood.size());
+
+		setDangerOfArrest();
+
+		System.out.println("I'm agent " + getLocalName() 
+			+ " and I have the follow neighbors: " + neighborhood.toString());
+	}
+
+	private void setUpIteration() {
+		// (av)it
+		setCorruptionAversionAround();
+		// bit
+		setCorruptionRate();
+		// ait
+		setCorruptionAversion();
+		
+		// pit
+		setArrestProbabilityObserved();
+		// cit
+		setDangerOfArrest();
+		
+		watchAgent(4);
+		
+		if(isCorrupt()) {
+			setCurrentState(AgentState.CORRUPT);
+		} else {
+			setCurrentState(AgentState.HONEST);
+		}
+	}
+
+	/**
+	 * Watch status of unique agent
+	 */
+	private void watchAgent(int agentID) {
+		if(Integer.valueOf(getLocalName()) == agentID) {
+			System.out.println("(Av)it = " + getCorruptionAversionAround());
+			System.out.println("bit = " + getCorruptionRate());
+			System.out.println("ait = " + getCorruptionAversion());
+			System.out.println("pit = " + getArrestProbabilityObserved());
+			System.out.println("cit = " + getDangerOfArrest());
+		}
+	}
+
+	private int count(AgentState state) {
+		int count = 0;
+
+		for(NeighborStatus ns : neighborsStatus.values()) {
+			if(ns.getState() == state) {
+				count++;
+			}
+		}
+
+		return count;
+	}
+
+	private Double calculateAversionArround() {
+		Double average = 0.0;
+
+		for(NeighborStatus neighborStatus : neighborsStatus.values()) {
+			average += neighborStatus.getCorruptionAversion();
+		}
+
+		average = average / neighborhood.size();
+
+		return average;
+	}
+
+	/**
+	 * Get corruption aversion and your state
+	 */
+	private String getResponseToken() {
+		return getCorruptionAversion() + PARAMS_SEPARATOR 
+				+ getCurrentState().getStateName();
 	}
 
 	/**
@@ -56,7 +249,7 @@ public class HumanAgent extends Agent {
 	 */
 	public boolean isCorrupt() {
 		Double corruptionMotivation = ((1 - getCorruptionAversion()) / getArrestProbabilityObserved());
-		boolean isCorruptInThisRound = corruptionMotivation > getCostOfPunishment();
+		boolean isCorruptInThisRound = corruptionMotivation >= getCostOfPunishment();
 
 		return isCorruptInThisRound;
 	}
@@ -65,14 +258,13 @@ public class HumanAgent extends Agent {
 		return corruptionAversionInitial;
 	}
 
-	/**
-	 * TODO
-	 * 
-	 * Changes to random setup, starting with average 0,5 and variance 0,25
-	 */
-	@Deprecated
-	public void setCorruptionAversionInitial(Double corruptionAversionInitial) {
-		this.corruptionAversionInitial = corruptionAversionInitial;
+	public void setCorruptionAversionInitial() {
+		// distribution between 0.25 and 0.75
+		this.corruptionAversionInitial = ThreadLocalRandom
+				.current().nextDouble(0.25, 0.75);
+
+		// init as initial
+		this.corruptionAversion = this.corruptionAversionInitial;
 	}
 
 	public Double getCorruptionAversion() {
@@ -94,20 +286,15 @@ public class HumanAgent extends Agent {
 	 * Set with past value {@link HumanAgent#getCorruptionRate()}
 	 */
 	public void setCorruptionRate() {
-		this.corruptionRate = (getCorruptionRate() + getCorruptionAversionAround()) ;
+		this.corruptionRate = (getCorruptionRate() + getCorruptionAversionAround())/2;
 	}
 
 	public Double getCorruptionAversionAround() {
 		return corruptionAversionAround;
 	}
 
-	/**
-	 * TODO
-	 * Setup this automatically.
-	 * Averages of corruputionAversion around. 
-	 */
-	public void setCorruptionAversionAround(Double corruptionAversionAround) {
-		this.corruptionAversionAround = corruptionAversionAround;
+	public void setCorruptionAversionAround() {
+		this.corruptionAversionAround = calculateAversionArround();
 	}
 
 	public Double getArrestProbabilityObserved() {
@@ -127,23 +314,27 @@ public class HumanAgent extends Agent {
 	}
 
 	/**
-	 * Setup rate of 
-	 * 
-	 * @param corrupts
-	 * @param arrestedCorrupts
-	 * @param honests
+	 * Setup rate of danger of arest
 	 */
-	public void setDangerOfArrest(Integer corrupts, Integer arrestCorrupted , Integer honests) {
-		this.dangerOfArrest =  (arrestCorrupted.doubleValue() 
-				+ honests.doubleValue()) / (corrupts.doubleValue() + 1);
+	public void setDangerOfArrest() {
+		// should be runs after neighborsStatus are finished
+		int corrupts = count(AgentState.CORRUPT);
+		int arrested = count(AgentState.ARRESTED);
+		int honests = count(AgentState.HONEST);
+
+		this.dangerOfArrest =  (double) (arrested + honests) / (corrupts + 1);
 	}
 
-	public boolean isArested() {
-		return isArested;
+	public void setNeighborsStatus(Map<Integer, NeighborStatus> neighborsStatus) {
+		this.neighborsStatus = neighborsStatus;
 	}
 
-	public void setArested(boolean isArested) {
-		this.isArested = isArested;
+	public AgentState getCurrentState() {
+		return currentState;
+	}
+
+	public void setCurrentState(AgentState currentState) {
+		this.currentState = currentState;
 	}
 
 	public Double getCostOfPunishment() {
@@ -152,5 +343,57 @@ public class HumanAgent extends Agent {
 
 	public void setCostOfPunishment(Double costOfPunishment) {
 		this.costOfPunishment = costOfPunishment;
+	}
+
+	public Vector<Integer> setNeighborhood(String agentID) {
+		neighborhood = new Vector<Integer>();
+
+		Double agentPosition = Double.parseDouble(agentID);		
+		Double gridOrder = Double.parseDouble(getArguments()[0].toString());
+
+		Double lineDouble = agentPosition / gridOrder;
+		int line = lineDouble.intValue();
+
+		int col = (int) (agentPosition % gridOrder);
+
+		int row = gridOrder.intValue();
+
+		// NL
+		if(validNeigboarhood(col - 1, line - 1, row))
+			neighborhood.add(calcNeigboarhood(col-1, line-1, row));
+		// N
+		if(validNeigboarhood(col, line - 1, row))
+			neighborhood.add(calcNeigboarhood(col, line-1, row));
+		// NW
+		if(validNeigboarhood(col + 1, line - 1, row))
+			neighborhood.add(calcNeigboarhood(col+1, line-1, row));
+		// W
+		if(validNeigboarhood(col + 1, line, row))
+			neighborhood.add(calcNeigboarhood(col+1, line, row));
+		// SW
+		if(validNeigboarhood(col + 1, line + 1, row))
+			neighborhood.add(calcNeigboarhood(col+1, line+1, row));
+		// S
+		if(validNeigboarhood(col, line + 1, row))
+			neighborhood.add(calcNeigboarhood(col, line+1, row));
+		// SL
+		if(validNeigboarhood(col - 1, line + 1, row))
+			neighborhood.add(calcNeigboarhood(col-1, line+1, row));
+		// L
+		if(validNeigboarhood(col - 1, line, row))
+			neighborhood.add(calcNeigboarhood(col-1, line, row));
+		
+		return neighborhood;
+	}
+
+	private boolean validNeigboarhood(int col, int line, int qtd) {
+		boolean basicCondition = (col >= 0) && (line >= 0) 
+				&& (col < qtd) && (line < qtd);
+		return basicCondition; 
+	}
+
+	private Integer calcNeigboarhood(int col, int line, int qtd) {
+		int location = (line * qtd) + col;
+		return location;
 	}
 }
