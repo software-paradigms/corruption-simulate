@@ -1,5 +1,6 @@
 package br.unb.fga.software.multiagent.agent;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Vector;
@@ -21,8 +22,14 @@ public class HumanAgent extends Agent {
 
 	protected static final String PARAMS_SEPARATOR = ";";
 
-	private static final Double TO_START_CORRUPT = 0.6; 
+	private static final Double TO_START_CORRUPT = 0.5;
 
+	private static final double ARRESTED_PROBABILITY = 0.5; 
+	
+	private final Double maxProbabilityToArrested = 0.8;
+	
+	private Double costOfPunishment = 1.6;
+	
 	// Between [0, 1], starts with average 0,5 and variance 0,25
 	private Double corruptionAversionInitial;
 	
@@ -40,10 +47,6 @@ public class HumanAgent extends Agent {
 
 	// Rate arrest observed arround
 	private Double dangerOfArrest;
-
-	private final Double maxProbabilityToArrested = .8;
-	
-	private Double costOfPunishment = 1.2;
 
 	private AgentState currentState;
 
@@ -133,7 +136,7 @@ public class HumanAgent extends Agent {
 		addBehaviour(parallelBehaviour);
 
 		// Should refresh simulation every time, should be syncronized with
-		addBehaviour(new TickerBehaviour(this, 2500) {
+		addBehaviour(new TickerBehaviour(this, 1000) {
 
 			private static final long serialVersionUID = 1L;
 
@@ -190,24 +193,25 @@ public class HumanAgent extends Agent {
 		setDangerOfArrest();
 		// pit
 		setArrestProbabilityObserved();
-		
-		watchAgent(7);
-		
-		
-		setCurrentState(getCurrentAgentState());
+
+		setCurrentState(calculateCurrentState());
+
+		watchAgent(4);
 	}
 	
-	private AgentState getCurrentAgentState(){
+	private AgentState calculateCurrentState(){
 		AgentState state = null;
-		if(getRealArrestedCaptured() >= .005)
-			state = AgentState.ARRESTED;
-		else{
-			if(isCorrupt()) {
+
+		if(isCorrupt()) {
+			if(getRealArrestedCaptured() >= ARRESTED_PROBABILITY) {
+				state = AgentState.ARRESTED;
+			} else {				
 				state = AgentState.CORRUPT;
-			} else {
-				state = AgentState.HONEST;
 			}
+		} else {
+				state = AgentState.HONEST;
 		}
+
 		return state;
 	}
 
@@ -228,6 +232,11 @@ public class HumanAgent extends Agent {
 			System.out.println("pit = " + getArrestProbabilityObserved());
 			System.out.println("cit = " + getDangerOfArrest());
 			System.out.println("Pit = " + getRealArrestedCaptured());
+			for(NeighborStatus ns : neighborsStatus.values()) 
+				System.out.println("Vizinhos is " + ns.getState());
+			System.out.println("Corrupts is" + count(AgentState.CORRUPT));
+			System.out.println("Honests is" + count(AgentState.HONEST));
+			System.out.println("All is " + neighborhood.size());
 		}
 	}
 	
@@ -249,8 +258,8 @@ public class HumanAgent extends Agent {
 		for(NeighborStatus neighborStatus : neighborsStatus.values()) {
 			average += neighborStatus.getCorruptionAversion();
 		}
-
-		average = average / neighborhood.size();
+		average += this.getCorruptionAversion();
+		average = average / (neighborhood.size()+1);
 
 		return average;
 	}
@@ -341,7 +350,7 @@ public class HumanAgent extends Agent {
 		int arrested = count(AgentState.ARRESTED);
 		int honests = count(AgentState.HONEST);
 		
-		this.dangerOfArrest =  (double) (honests) / (corrupts + 1);
+		this.dangerOfArrest =  (double) (arrested + honests) / (corrupts + 1);
 	}
 
 	public void setNeighborsStatus(Map<Integer, NeighborStatus> neighborsStatus) {

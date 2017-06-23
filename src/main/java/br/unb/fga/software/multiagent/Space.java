@@ -90,7 +90,7 @@ public class Space extends Agent {
 			}
 		});
 		
-		addBehaviour(new TickerBehaviour(this, 250) {
+		addBehaviour(new TickerBehaviour(this, 1000) {
 			private static final long serialVersionUID = 1L;
 
 			@Override
