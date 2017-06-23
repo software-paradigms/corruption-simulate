@@ -7,7 +7,6 @@ import java.util.Vector;
 import java.util.concurrent.ThreadLocalRandom;
 
 import br.unb.fga.software.multiagent.AgentState;
-import br.unb.fga.software.multiagent.Parallel;
 import jade.core.AID;
 import jade.core.Agent;
 import jade.core.behaviours.ParallelBehaviour;
@@ -54,6 +53,8 @@ public class HumanAgent extends Agent {
 	private Vector<Integer> neighborhood;
 	
 	private Map<Integer, NeighborStatus> neighborsStatus;
+	
+	private boolean canStart = true;
 
 	@Override
 	protected void setup() {
@@ -85,7 +86,6 @@ public class HumanAgent extends Agent {
 				return neighborsStatus.size() == neighborhood.size();
 			}
 		};
-
 		/*
 		 *  When a neighbor claims agent parameters, this agent should respond this.
 		 */
@@ -98,15 +98,21 @@ public class HumanAgent extends Agent {
 				
 //				System.out.println(getLocalName() + ": my neighbors are " 
 //						+ neighborhood.size());
-
-				if(tokenResponse != null && !tokenResponse.getSender().getLocalName().equals("ams")) {
-					updateNeighborStatus(tokenResponse);
-
-					// Now reply to this sender
-					ACLMessage reply = tokenResponse.createReply();
-
-					String content = getResponseToken();
-					reply.setContent(content);
+				if(tokenResponse != null){
+					if(tokenResponse.getSender().getLocalName().equals("space")){
+						canStart = true;
+					}
+					else {
+						if(!tokenResponse.getSender().getLocalName().equals("ams")) {
+							updateNeighborStatus(tokenResponse);
+		
+							// Now reply to this sender
+							ACLMessage reply = tokenResponse.createReply();
+		
+							String content = getResponseToken();
+							reply.setContent(content);
+						}
+					}
 				}
 			}
 
@@ -145,7 +151,9 @@ public class HumanAgent extends Agent {
 
 			@Override
 			protected void onTick() {
-				if(parallelBehaviour.done()) {
+//				System.out.println("Agent " + getLocalName());
+//				System.out.println("Status:" + parallelBehaviour.done());
+				if(parallelBehaviour.done() && canStart) {
 					setUpIteration();
 
 					ACLMessage stateInform = new ACLMessage(ACLMessage.INFORM);
@@ -158,6 +166,7 @@ public class HumanAgent extends Agent {
 
 					parallelBehaviour.reset();
 					human.addBehaviour(parallelBehaviour);
+					canStart = false;
 				}
 			}
 		});
@@ -182,9 +191,9 @@ public class HumanAgent extends Agent {
 		this.neighborsStatus = new HashMap<Integer, NeighborStatus>(neighborhood.size());
 
 		setDangerOfArrest();
-
-		System.out.println("I'm agent " + getLocalName() 
-			+ " and I have the follow neighbors: " + neighborhood.toString());
+//
+//		System.out.println("I'm agent " + getLocalName() 
+//			+ " and I have the follow neighbors: " + neighborhood.toString());
 	}
 
 	private void setUpIteration() {

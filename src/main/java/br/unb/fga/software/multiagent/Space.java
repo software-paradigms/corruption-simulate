@@ -3,6 +3,7 @@ package br.unb.fga.software.multiagent;
 import java.util.ArrayList;
 
 import br.unb.fga.software.multiagent.agent.HumanAgent;
+import jade.core.AID;
 import jade.core.Agent;
 import jade.core.Profile;
 import jade.core.ProfileImpl;
@@ -38,6 +39,8 @@ public class Space extends Agent {
 	private Integer iterations = 0;
 
 	private Integer actualIteration;
+	
+	private Integer totalResponse = 1;
 
 	@Override
 	protected void setup() {
@@ -56,6 +59,11 @@ public class Space extends Agent {
 
 		final SpaceWindow space = new SpaceWindow(getSpaceLenght());
 		space.setVisible(true);
+		for (Integer i = 0; i < getSpaceLenght() * getSpaceLenght(); i++) {
+			ACLMessage stateInform = new ACLMessage(ACLMessage.INFORM);
+			stateInform.addReceiver(new AID(i.toString(), AID.ISLOCALNAME));
+			send(stateInform);
+		}
 
 		// Should refresh simulation every time
 		addBehaviour(new CyclicBehaviour(this) {
@@ -69,6 +77,8 @@ public class Space extends Agent {
 				if (msg != null) {
 					String agentId = msg.getSender().getLocalName();
 					String msgState = msg.getContent();
+					
+					totalResponse ++;
 
 					// System.out.println("Receiving state from: " + agentId);
 
@@ -85,16 +95,28 @@ public class Space extends Agent {
 						case ARRESTED:
 							AgentMultiton.update(agentId, SpaceWindow.ARRESTED);
 							break;
+					} 
+					
+					
+					if(totalResponse == getSpaceLenght()*getSpaceLenght())
+					{
+						for (Integer i = 0; i < getSpaceLenght() * getSpaceLenght(); i++) {
+							ACLMessage stateInform = new ACLMessage(ACLMessage.INFORM);
+							stateInform.addReceiver(new AID(i.toString(), AID.ISLOCALNAME));
+							send(stateInform);
+						}
+						
+						totalResponse = 1;
 					}
 				}
 			}
 		});
 		
-		addBehaviour(new TickerBehaviour(this, 1000) {
+		addBehaviour(new CyclicBehaviour() {
 			private static final long serialVersionUID = 1L;
 
 			@Override
-			protected void onTick() {
+			public void action() {
 				if (!AgentMultiton.isEmpty()) {
 					space.updatePainel(AgentMultiton.getAllColors());
 				}
