@@ -41,6 +41,8 @@ public class HumanAgent extends Agent {
 	// Rate arrest observed arround
 	private Double dangerOfArrest;
 
+	private final Double maxProbabilityToArrested = .8;
+	
 	private Double costOfPunishment = 1.2;
 
 	private AgentState currentState;
@@ -189,13 +191,30 @@ public class HumanAgent extends Agent {
 		// pit
 		setArrestProbabilityObserved();
 		
-		watchAgent(4);
+		watchAgent(7);
 		
-		if(isCorrupt()) {
-			setCurrentState(AgentState.CORRUPT);
-		} else {
-			setCurrentState(AgentState.HONEST);
+		
+		setCurrentState(getCurrentAgentState());
+	}
+	
+	private AgentState getCurrentAgentState(){
+		AgentState state = null;
+		if(getRealArrestedCaptured() >= .005)
+			state = AgentState.ARRESTED;
+		else{
+			if(isCorrupt()) {
+				state = AgentState.CORRUPT;
+			} else {
+				state = AgentState.HONEST;
+			}
 		}
+		return state;
+	}
+
+	private double getRealArrestedCaptured() {
+		double p = getMaxProbabilityToArrested();
+		p *= (count(AgentState.HONEST) + 1.0)/(neighborhood.size() + 2);
+		return p;
 	}
 
 	/**
@@ -208,6 +227,7 @@ public class HumanAgent extends Agent {
 			System.out.println("ait = " + getCorruptionAversion());
 			System.out.println("pit = " + getArrestProbabilityObserved());
 			System.out.println("cit = " + getDangerOfArrest());
+			System.out.println("Pit = " + getRealArrestedCaptured());
 		}
 	}
 	
@@ -340,10 +360,6 @@ public class HumanAgent extends Agent {
 		return costOfPunishment;
 	}
 
-	public void setCostOfPunishment(Double costOfPunishment) {
-		this.costOfPunishment = costOfPunishment;
-	}
-
 	public Vector<Integer> setNeighborhood(String agentID) {
 		neighborhood = new Vector<Integer>();
 
@@ -394,5 +410,9 @@ public class HumanAgent extends Agent {
 	private Integer calcNeigboarhood(int col, int line, int qtd) {
 		int location = (line * qtd) + col;
 		return location;
+	}
+
+	public Double getMaxProbabilityToArrested() {
+		return maxProbabilityToArrested;
 	}
 }
