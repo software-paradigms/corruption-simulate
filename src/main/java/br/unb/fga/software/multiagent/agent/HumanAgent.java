@@ -41,7 +41,9 @@ public class HumanAgent extends Agent {
 	// Rate arrest observed arround
 	private Double dangerOfArrest;
 
-	private Double costOfPunishment = 2.5;
+	private final Double costOfPunishment = 2.5;
+	
+	private final Double maxProbabilityToArrested = .8;
 
 	private AgentState currentState;
 
@@ -164,7 +166,7 @@ public class HumanAgent extends Agent {
 			setCurrentState(AgentState.HONEST);
 		}
 
-		this.arrestProbabilityObserved = 1.0;
+		this.arrestProbabilityObserved = 0.0;
 
 		// Find all neighbors 
 		setNeighborhood(getLocalName());
@@ -190,13 +192,30 @@ public class HumanAgent extends Agent {
 		// cit
 		setDangerOfArrest();
 		
-		watchAgent(4);
+		watchAgent(7);
 		
-		if(isCorrupt()) {
-			setCurrentState(AgentState.CORRUPT);
-		} else {
-			setCurrentState(AgentState.HONEST);
+		
+		setCurrentState(getCurrentAgentState());
+	}
+	
+	private AgentState getCurrentAgentState(){
+		AgentState state = null;
+		if(getRealArrestedCaptured() >= .005)
+			state = AgentState.ARRESTED;
+		else{
+			if(isCorrupt()) {
+				state = AgentState.CORRUPT;
+			} else {
+				state = AgentState.HONEST;
+			}
 		}
+		return state;
+	}
+
+	private double getRealArrestedCaptured() {
+		double p = getMaxProbabilityToArrested();
+		p *= (count(AgentState.HONEST) + 1.0)/(neighborhood.size() + 2);
+		return p;
 	}
 
 	/**
@@ -209,6 +228,7 @@ public class HumanAgent extends Agent {
 			System.out.println("ait = " + getCorruptionAversion());
 			System.out.println("pit = " + getArrestProbabilityObserved());
 			System.out.println("cit = " + getDangerOfArrest());
+			System.out.println("Pit = " + getRealArrestedCaptured());
 		}
 	}
 
@@ -341,10 +361,6 @@ public class HumanAgent extends Agent {
 		return costOfPunishment;
 	}
 
-	public void setCostOfPunishment(Double costOfPunishment) {
-		this.costOfPunishment = costOfPunishment;
-	}
-
 	public Vector<Integer> setNeighborhood(String agentID) {
 		neighborhood = new Vector<Integer>();
 
@@ -395,5 +411,9 @@ public class HumanAgent extends Agent {
 	private Integer calcNeigboarhood(int col, int line, int qtd) {
 		int location = (line * qtd) + col;
 		return location;
+	}
+
+	public Double getMaxProbabilityToArrested() {
+		return maxProbabilityToArrested;
 	}
 }
