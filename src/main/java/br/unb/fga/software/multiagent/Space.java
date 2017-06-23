@@ -59,11 +59,6 @@ public class Space extends Agent {
 
 		final SpaceWindow space = new SpaceWindow(getSpaceLenght());
 		space.setVisible(true);
-		for (Integer i = 0; i < getSpaceLenght() * getSpaceLenght(); i++) {
-			ACLMessage stateInform = new ACLMessage(ACLMessage.INFORM);
-			stateInform.addReceiver(new AID(i.toString(), AID.ISLOCALNAME));
-			send(stateInform);
-		}
 
 		// Should refresh simulation every time
 		addBehaviour(new CyclicBehaviour(this) {
@@ -97,7 +92,8 @@ public class Space extends Agent {
 							break;
 					} 
 					
-					
+					System.out.println("--------------------------------------");
+					System.out.println(totalResponse);
 					if(totalResponse == getSpaceLenght()*getSpaceLenght())
 					{
 						for (Integer i = 0; i < getSpaceLenght() * getSpaceLenght(); i++) {

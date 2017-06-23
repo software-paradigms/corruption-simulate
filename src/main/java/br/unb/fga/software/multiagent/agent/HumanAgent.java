@@ -24,9 +24,9 @@ public class HumanAgent extends Agent {
 
 	private static final Double TO_START_CORRUPT = 0.5;
 
-	private static final double ARRESTED_PROBABILITY = 0.5; 
+	private static final double ARRESTED_PROBABILITY = 0.4; 
 	
-	private final Double maxProbabilityToArrested = 0.8;
+	private final Double maxProbabilityToArrested = 0.95;
 	
 	private Double costOfPunishment = 1.6;
 	
@@ -101,6 +101,7 @@ public class HumanAgent extends Agent {
 				if(tokenResponse != null){
 					if(tokenResponse.getSender().getLocalName().equals("space")){
 						canStart = true;
+						tokenResponse = null;
 					}
 					else {
 						if(!tokenResponse.getSender().getLocalName().equals("ams")) {
@@ -153,7 +154,7 @@ public class HumanAgent extends Agent {
 			protected void onTick() {
 //				System.out.println("Agent " + getLocalName());
 //				System.out.println("Status:" + parallelBehaviour.done());
-				if(parallelBehaviour.done() && canStart) {
+				if(parallelBehaviour.done()) {
 					setUpIteration();
 
 					ACLMessage stateInform = new ACLMessage(ACLMessage.INFORM);
@@ -163,7 +164,8 @@ public class HumanAgent extends Agent {
 					send(stateInform);
 					
 					neighborsStatus.clear();
-
+				}
+				if(canStart){
 					parallelBehaviour.reset();
 					human.addBehaviour(parallelBehaviour);
 					canStart = false;
@@ -216,17 +218,20 @@ public class HumanAgent extends Agent {
 	
 	private AgentState calculateCurrentState(){
 		AgentState state = null;
-
-		if(isCorrupt()) {
-			if(getRealArrestedCaptured() >= ARRESTED_PROBABILITY) {
-				state = AgentState.ARRESTED;
-			} else {				
-				state = AgentState.CORRUPT;
+		if(getCurrentState() != AgentState.ARRESTED)
+			if(isCorrupt()) {
+				if(getRealArrestedCaptured() >= ARRESTED_PROBABILITY) {
+					state = AgentState.ARRESTED;
+				} else {				
+					state = AgentState.CORRUPT;
+				}
+			} else {
+					state = AgentState.HONEST;
 			}
-		} else {
-				state = AgentState.HONEST;
+		else
+		{
+			state = AgentState.ARRESTED;
 		}
-
 		return state;
 	}
 
