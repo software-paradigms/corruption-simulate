@@ -19,7 +19,9 @@ public class HumanAgent extends Agent {
 	
 	public static final String INDEXES_SEPARATOR = "x";
 
-	protected static final String PARAMS_SEPARATOR = ";"; 
+	protected static final String PARAMS_SEPARATOR = ";";
+
+	private static final Double TO_START_CORRUPT = 0.3; 
 
 	// Between [0, 1], starts with average 0,5 and variance 0,25
 	private Double corruptionAversionInitial;
@@ -39,7 +41,7 @@ public class HumanAgent extends Agent {
 	// Rate arrest observed arround
 	private Double dangerOfArrest;
 
-	private Double costOfPunishment = 2.2;
+	private Double costOfPunishment = 2.5;
 
 	private AgentState currentState;
 
@@ -90,8 +92,6 @@ public class HumanAgent extends Agent {
 				
 				System.out.println(getLocalName() + ": my neighbors are " 
 						+ neighborhood.size());
-				System.out.println(getLocalName() + ": my neighbors known are " 
-						+ neighborsStatus.size());
 
 				if(tokenResponse != null && !tokenResponse.getSender().getLocalName().equals("ams")) {
 					updateNeighborStatus(tokenResponse);
@@ -142,9 +142,6 @@ public class HumanAgent extends Agent {
 
 					ACLMessage stateInform = new ACLMessage(ACLMessage.INFORM);
 					stateInform.addReceiver(new AID("space", AID.ISLOCALNAME));
-
-					System.out.println("Agent " + getLocalName() 
-						+ " is " + getCurrentState().getStateName());
 					
 					stateInform.setContent(getCurrentState().getStateName());
 					send(stateInform);
@@ -161,13 +158,13 @@ public class HumanAgent extends Agent {
 
 		this.corruptionRate = getCorruptionAversion();
 		
-		if(getCorruptionAversionInitial() < 0.2) {
+		if(getCorruptionAversionInitial() < TO_START_CORRUPT) {
 			setCurrentState(AgentState.CORRUPT);
 		} else {
 			setCurrentState(AgentState.HONEST);
 		}
 
-		this.arrestProbabilityObserved = 0.0;
+		this.arrestProbabilityObserved = 1.0;
 
 		// Find all neighbors 
 		setNeighborhood(getLocalName());
@@ -181,12 +178,19 @@ public class HumanAgent extends Agent {
 	}
 
 	private void setUpIteration() {
+		// (av)it
 		setCorruptionAversionAround();
+		// bit
 		setCorruptionRate();
+		// ait
+		setCorruptionAversion();
+		
+		// pit
 		setArrestProbabilityObserved();
-
+		// cit
 		setDangerOfArrest();
-		setArrestProbabilityObserved();
+		
+		watchAgent(4);
 		
 		if(isCorrupt()) {
 			setCurrentState(AgentState.CORRUPT);
@@ -195,11 +199,24 @@ public class HumanAgent extends Agent {
 		}
 	}
 
-	private int count(AgentState corrupt) {
+	/**
+	 * Watch status of unique agent
+	 */
+	private void watchAgent(int agentID) {
+		if(Integer.valueOf(getLocalName()) == agentID) {
+			System.out.println("(Av)it = " + getCorruptionAversionAround());
+			System.out.println("bit = " + getCorruptionRate());
+			System.out.println("ait = " + getCorruptionAversion());
+			System.out.println("pit = " + getArrestProbabilityObserved());
+			System.out.println("cit = " + getDangerOfArrest());
+		}
+	}
+
+	private int count(AgentState state) {
 		int count = 0;
 
 		for(NeighborStatus ns : neighborsStatus.values()) {
-			if(ns.getState() == corrupt) {
+			if(ns.getState() == state) {
 				count++;
 			}
 		}
@@ -214,7 +231,7 @@ public class HumanAgent extends Agent {
 			average += neighborStatus.getCorruptionAversion();
 		}
 
-		average = average / 2;
+		average = average / neighborhood.size();
 
 		return average;
 	}
@@ -232,7 +249,7 @@ public class HumanAgent extends Agent {
 	 */
 	public boolean isCorrupt() {
 		Double corruptionMotivation = ((1 - getCorruptionAversion()) / getArrestProbabilityObserved());
-		boolean isCorruptInThisRound = corruptionMotivation > getCostOfPunishment();
+		boolean isCorruptInThisRound = corruptionMotivation >= getCostOfPunishment();
 
 		return isCorruptInThisRound;
 	}
@@ -306,6 +323,10 @@ public class HumanAgent extends Agent {
 		int honests = count(AgentState.HONEST);
 
 		this.dangerOfArrest =  (double) (arrested + honests) / (corrupts + 1);
+	}
+
+	public void setNeighborsStatus(Map<Integer, NeighborStatus> neighborsStatus) {
+		this.neighborsStatus = neighborsStatus;
 	}
 
 	public AgentState getCurrentState() {

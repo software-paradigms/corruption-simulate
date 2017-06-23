@@ -35,7 +35,7 @@ public class Space extends Agent {
 	/*
 	 * Quantity of iterations
 	 */
-	private Integer iterations;
+	private Integer iterations = 0;
 
 	private Integer actualIteration;
 
