@@ -1,10 +1,8 @@
 package br.unb.fga.software.multiagent;
 
 import br.unb.fga.software.multiagent.agent.HumanAgent;
-import jade.core.AID;
+import br.unb.fga.software.multiagent.behaviour.ReceiveStatusBehaviour;
 import jade.core.Agent;
-import jade.core.behaviours.CyclicBehaviour;
-import jade.lang.acl.ACLMessage;
 import jade.wrapper.StaleProxyException;
 
 public class Space extends Agent {
@@ -32,8 +30,6 @@ public class Space extends Agent {
 	private Integer iterations = 0;
 
 	private Integer actualIteration;
-	
-	private Integer totalResponse = 1;
 
 	@Override
 	protected void setup() {
@@ -50,64 +46,11 @@ public class Space extends Agent {
 		// Creates all agents to fills square space
 		createAgents();
 
-		final SpaceWindow space = new SpaceWindow(getSpaceLenght());
-		space.setVisible(true);
+		addBehaviour(new ReceiveStatusBehaviour(this, getOrder()));
+	}
 
-		// Should refresh simulation every time
-		addBehaviour(new CyclicBehaviour(this) {
-
-			private static final long serialVersionUID = 1L;
-
-			@Override
-			public void action() {
-				ACLMessage msg = receive();
-
-				if (msg != null) {
-					String agentId = msg.getSender().getLocalName();
-					String msgState = msg.getContent();
-					
-					totalResponse ++;
-
-					// System.out.println("Receiving state from: " + agentId);
-
-					switch (AgentState.getByString(msgState)) {
-						case CORRUPT:
-							AgentMultiton.update(agentId, SpaceWindow.CORRUPT);
-							break;
-						case NEUTRAL:
-							AgentMultiton.update(agentId, SpaceWindow.NEUTRAL);
-							break;
-						case HONEST:
-							AgentMultiton.update(agentId, SpaceWindow.HONEST);
-							break;
-						case ARRESTED:
-							AgentMultiton.update(agentId, SpaceWindow.ARRESTED);
-							break;
-					} 
-					
-					if(totalResponse == getSpaceLenght()*getSpaceLenght()) {
-						for (Integer i = 0; i < getSpaceLenght() * getSpaceLenght(); i++) {
-							ACLMessage stateInform = new ACLMessage(ACLMessage.INFORM);
-							stateInform.addReceiver(new AID(i.toString(), AID.ISLOCALNAME));
-							send(stateInform);
-						}
-						
-						totalResponse = 1;
-					}
-				}
-			}
-		});
-		
-		addBehaviour(new CyclicBehaviour() {
-			private static final long serialVersionUID = 1L;
-
-			@Override
-			public void action() {
-				if (!AgentMultiton.isEmpty()) {
-					space.updatePainel(AgentMultiton.getAllColors());
-				}
-			}
-		});
+	private Integer getOrder() {
+		return getSpaceLenght() * getSpaceLenght();
 	}
 
 	private void createAgents() {

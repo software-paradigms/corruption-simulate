@@ -70,8 +70,6 @@ public class HumanAgent extends Agent {
 		parallelBehaviour.addSubBehaviour(dataNeighborBehaviour);
 
 		addBehaviour(parallelBehaviour);
-		
-		final HumanAgent human = this;
 
 		// Should refresh simulation every time, should be syncronized with
 		addBehaviour(new TickerBehaviour(this, 1000) {
@@ -91,10 +89,9 @@ public class HumanAgent extends Agent {
 					send(stateInform);
 					
 					neighborsStatus.clear();
-				}
-				if(canStart){
+				} if(canStart()) {
 					parallelBehaviour.reset();
-					human.addBehaviour(parallelBehaviour);
+					addBehaviour(parallelBehaviour);
 					canStart = false;
 				}
 			}
@@ -384,7 +381,7 @@ public class HumanAgent extends Agent {
 		return neighborsStatus;
 	}
 
-	public boolean isCanStart() {
+	public boolean canStart() {
 		return canStart;
 	}
 
