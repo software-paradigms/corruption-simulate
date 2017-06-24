@@ -5,12 +5,12 @@ import jade.core.AID;
 import jade.core.behaviours.SimpleBehaviour;
 import jade.lang.acl.ACLMessage;
 
-public class ObserveNeighbor extends SimpleBehaviour {
+public class ObserveNeighborBehaviour extends SimpleBehaviour {
 	private static final long serialVersionUID = 1L;
 	
 	private HumanAgent agent;
 	
-	public ObserveNeighbor(HumanAgent humanAgent) {
+	public ObserveNeighborBehaviour(HumanAgent humanAgent) {
 		this.agent = humanAgent;
 	}
 

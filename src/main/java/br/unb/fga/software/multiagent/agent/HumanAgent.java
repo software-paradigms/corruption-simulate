@@ -6,7 +6,7 @@ import java.util.Vector;
 import java.util.concurrent.ThreadLocalRandom;
 
 import br.unb.fga.software.multiagent.AgentState;
-import br.unb.fga.software.multiagent.behaviour.ObserveNeighbor;
+import br.unb.fga.software.multiagent.behaviour.ObserveNeighborBehaviour;
 import br.unb.fga.software.multiagent.behaviour.ResponseStatusBehaviour;
 import jade.core.AID;
 import jade.core.Agent;
@@ -22,13 +22,13 @@ public class HumanAgent extends Agent {
 
 	public static final String PARAMS_SEPARATOR = ";";
 
-	private static final Double TO_START_CORRUPT = 0.5;
+	private static final Double TO_START_CORRUPT = 0.3;
 
-	private static final double ARRESTED_PROBABILITY = 0.4; 
+	private static final double ARRESTED_PROBABILITY = 0.7; 
 	
 	private final Double maxProbabilityToArrested = 0.95;
 	
-	private Double costOfPunishment = 1.6;
+	private Double costOfPunishment = 3.2;
 	
 	// Between [0, 1], starts with average 0,5 and variance 0,25
 	private Double corruptionAversionInitial;
@@ -61,13 +61,13 @@ public class HumanAgent extends Agent {
 		
 		setInitialAgentAttributes();
 
-		ObserveNeighbor requestNeighborBehaviour = new ObserveNeighbor(this); 
+		ObserveNeighborBehaviour requestNeighborBehaviour = new ObserveNeighborBehaviour(this); 
 
-		ResponseStatusBehaviour dataNeighborBehaviour = new ResponseStatusBehaviour(this);
+		ResponseStatusBehaviour responseNeighborBehaviour = new ResponseStatusBehaviour(this);
 
 		final ParallelBehaviour parallelBehaviour = new ParallelBehaviour(ParallelBehaviour.WHEN_ALL);
 		parallelBehaviour.addSubBehaviour(requestNeighborBehaviour);
-		parallelBehaviour.addSubBehaviour(dataNeighborBehaviour);
+		parallelBehaviour.addSubBehaviour(responseNeighborBehaviour);
 
 		addBehaviour(parallelBehaviour);
 
@@ -117,9 +117,6 @@ public class HumanAgent extends Agent {
 		this.neighborsStatus = new HashMap<Integer, NeighborStatus>(neighborhood.size());
 
 		setDangerOfArrest();
-//
-//		System.out.println("I'm agent " + getLocalName() 
-//			+ " and I have the follow neighbors: " + neighborhood.toString());
 	}
 
 	private void setUpIteration() {
@@ -142,21 +139,36 @@ public class HumanAgent extends Agent {
 	
 	private AgentState calculateCurrentState(){
 		AgentState state = null;
-		if(getCurrentState() != AgentState.ARRESTED)
-			if(isCorrupt()) {
+
+		switch (getCurrentState()) {
+			case ARRESTED:
+				// keep arrested
+				state = AgentState.ARRESTED;
+				break;
+			case CORRUPT:
+				// could be arrested
 				if(getRealArrestedCaptured() >= ARRESTED_PROBABILITY) {
 					state = AgentState.ARRESTED;
-				} else {				
-					state = AgentState.CORRUPT;
+				} else {
+					state = decideWhatToBe();
 				}
-			} else {
-					state = AgentState.HONEST;
-			}
-		else
-		{
-			state = AgentState.ARRESTED;
+				break;
+			case HONEST:
+				state = decideWhatToBe();
+				break;
+			default:
+				throw new RuntimeException("Impossible state of calculateCurrentState");
 		}
+
 		return state;
+	}
+
+	private AgentState decideWhatToBe() {
+		if(isCorrupt()) {
+			return AgentState.CORRUPT;
+		} else {
+			return AgentState.HONEST;						
+		}
 	}
 
 	private double getRealArrestedCaptured() {
