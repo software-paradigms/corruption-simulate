@@ -10,26 +10,9 @@ public class Space extends Agent {
 	private static final long serialVersionUID = 1L;
 
 	/*
-	 * Probability of agent[i][j] be arrest
-	 */
-	private Double[][] arrestProbability;
-
-	/*
-	 * Index of investigation about corruption
-	 */
-	private Double researchEffort;
-
-	/*
 	 * Quantity of agents in this environment
 	 */
 	private Integer spaceLenght;
-
-	/*
-	 * Quantity of iterations
-	 */
-	private Integer iterations = 0;
-
-	private Integer actualIteration;
 
 	@Override
 	protected void setup() {
@@ -49,15 +32,23 @@ public class Space extends Agent {
 		addBehaviour(new ReceiveStatusBehaviour(this, getOrder()));
 	}
 
+	public Integer getSpaceLenght() {
+		return spaceLenght;
+	}
+
+	public void setSpaceLenght(Integer spaceLenght) {
+		this.spaceLenght = spaceLenght;
+	}
+
 	private Integer getOrder() {
 		return getSpaceLenght() * getSpaceLenght();
 	}
 
 	private void createAgents() {
 		Integer row = spaceLenght;
-		String[] params = {row.toString()};
+		String[] params = { row.toString() };
 
-		AgentMultiton.clear();		
+		AgentMultiton.clear();
 
 		for (int id = 0; id < row * row; id++) {
 			try {
@@ -68,45 +59,5 @@ public class Space extends Agent {
 			}
 			AgentMultiton.put(String.valueOf(id));
 		}
-	}
-
-	public Double[][] getArrestProbability() {
-		return arrestProbability;
-	}
-
-	public void setArrestProbability(Double[][] arrestProbability) {
-		this.arrestProbability = arrestProbability;
-	}
-
-	public Double getResearchEffort() {
-		return researchEffort;
-	}
-
-	public void setResearchEffort(Double researchEffort) {
-		this.researchEffort = researchEffort;
-	}
-
-	public Integer getSpaceLenght() {
-		return spaceLenght;
-	}
-
-	public void setSpaceLenght(Integer spaceLenght) {
-		this.spaceLenght = spaceLenght;
-	}
-
-	public Integer getIterations() {
-		return iterations;
-	}
-
-	public void setIterations(Integer iterations) {
-		this.iterations = iterations;
-	}
-
-	public Integer getActualIteration() {
-		return actualIteration;
-	}
-
-	public void setActualIteration(Integer actualIteration) {
-		this.actualIteration = actualIteration;
 	}
 }
