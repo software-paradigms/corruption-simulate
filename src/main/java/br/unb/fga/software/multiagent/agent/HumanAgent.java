@@ -7,10 +7,10 @@ import java.util.concurrent.ThreadLocalRandom;
 
 import br.unb.fga.software.multiagent.AgentState;
 import br.unb.fga.software.multiagent.behaviour.ObserveNeighbor;
+import br.unb.fga.software.multiagent.behaviour.ResponseStatusBehaviour;
 import jade.core.AID;
 import jade.core.Agent;
 import jade.core.behaviours.ParallelBehaviour;
-import jade.core.behaviours.SimpleBehaviour;
 import jade.core.behaviours.TickerBehaviour;
 import jade.lang.acl.ACLMessage;
 
@@ -20,7 +20,7 @@ public class HumanAgent extends Agent {
 	
 	public static final String INDEXES_SEPARATOR = "x";
 
-	protected static final String PARAMS_SEPARATOR = ";";
+	public static final String PARAMS_SEPARATOR = ";";
 
 	private static final Double TO_START_CORRUPT = 0.5;
 
@@ -61,59 +61,9 @@ public class HumanAgent extends Agent {
 		
 		setInitialAgentAttributes();
 
-		// Need Runs after each iteration
-		final ObserveNeighbor requestNeighborBehaviour = new ObserveNeighbor(this); 
-				
-		/*
-		 *  When a neighbor claims agent parameters, this agent should respond this.
-		 */
-		SimpleBehaviour dataNeighborBehaviour = new SimpleBehaviour() {
-			private static final long serialVersionUID = 1L;
+		ObserveNeighbor requestNeighborBehaviour = new ObserveNeighbor(this); 
 
-			@Override
-			public void action() {
-				ACLMessage tokenResponse = receive();
-				
-//				System.out.println(getLocalName() + ": my neighbors are " 
-//						+ neighborhood.size());
-				if(tokenResponse != null){
-					if(tokenResponse.getSender().getLocalName().equals("space")){
-						canStart = true;
-						tokenResponse = null;
-					}
-					else {
-						if(!tokenResponse.getSender().getLocalName().equals("ams")) {
-							updateNeighborStatus(tokenResponse);
-		
-							// Now reply to this sender
-							ACLMessage reply = tokenResponse.createReply();
-		
-							String content = getResponseToken();
-							reply.setContent(content);
-						}
-					}
-				}
-			}
-
-			/**
-			 * To understand token, see bellow method getResponseToken()
-			 */
-			private void updateNeighborStatus(ACLMessage tokenResponse) {
-				Integer agentID = Integer.valueOf(tokenResponse.getSender().getLocalName());
-
-				String[] token = tokenResponse.getContent().split(PARAMS_SEPARATOR);
-
-				NeighborStatus neighborStatus = new NeighborStatus(Double.valueOf(token[0]), 
-						AgentState.getByString(token[1]));
-
-				neighborsStatus.put(agentID, neighborStatus);
-			}
-
-			@Override
-			public boolean done() {
-				return neighborsStatus.size() == neighborhood.size();
-			}
-		};
+		ResponseStatusBehaviour dataNeighborBehaviour = new ResponseStatusBehaviour(this);
 
 		final ParallelBehaviour parallelBehaviour = new ParallelBehaviour(ParallelBehaviour.WHEN_ALL);
 		parallelBehaviour.addSubBehaviour(requestNeighborBehaviour);
@@ -432,5 +382,17 @@ public class HumanAgent extends Agent {
 
 	public Map<Integer, NeighborStatus> getNeighborsStatus() {
 		return neighborsStatus;
+	}
+
+	public boolean isCanStart() {
+		return canStart;
+	}
+
+	public void setCanStart(boolean canStart) {
+		this.canStart = canStart;
+	}
+
+	public void updateNeighborsStatus(Integer agentID, NeighborStatus neighborStatus) {
+		this.neighborsStatus.put(agentID, neighborStatus);
 	}
 }
