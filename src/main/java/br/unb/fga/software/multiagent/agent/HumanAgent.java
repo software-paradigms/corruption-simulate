@@ -1,12 +1,12 @@
 package br.unb.fga.software.multiagent.agent;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Vector;
 import java.util.concurrent.ThreadLocalRandom;
 
 import br.unb.fga.software.multiagent.AgentState;
+import br.unb.fga.software.multiagent.behaviour.ObserveNeighbor;
 import jade.core.AID;
 import jade.core.Agent;
 import jade.core.behaviours.ParallelBehaviour;
@@ -62,30 +62,8 @@ public class HumanAgent extends Agent {
 		setInitialAgentAttributes();
 
 		// Need Runs after each iteration
-		final SimpleBehaviour observesNeighborsBehaviour = new SimpleBehaviour() {
-			private static final long serialVersionUID = 1L;
-
-			@Override
-			public void action() {
-				// Request parameter tokens and send your self parameters
-				for(Integer neighborID : neighborhood) {
-					// If this status is null, means that he never response to him
-					if(neighborsStatus.get(neighborID) == null) {
-						ACLMessage requestToken = new ACLMessage(ACLMessage.INFORM);
-						requestToken.addReceiver(new AID(neighborID.toString(), AID.ISLOCALNAME));
-						requestToken.setContent(getResponseToken());
-						send(requestToken);
-					} else {
-						// Se ele já tem o parametro, então já enviou, não precisa pedir!!!
-					}
-				}
-			}
-
-			@Override
-			public boolean done() {
-				return neighborsStatus.size() == neighborhood.size();
-			}
-		};
+		final ObserveNeighbor requestNeighborBehaviour = new ObserveNeighbor(this); 
+				
 		/*
 		 *  When a neighbor claims agent parameters, this agent should respond this.
 		 */
@@ -138,7 +116,7 @@ public class HumanAgent extends Agent {
 		};
 
 		final ParallelBehaviour parallelBehaviour = new ParallelBehaviour(ParallelBehaviour.WHEN_ALL);
-		parallelBehaviour.addSubBehaviour(observesNeighborsBehaviour);
+		parallelBehaviour.addSubBehaviour(requestNeighborBehaviour);
 		parallelBehaviour.addSubBehaviour(dataNeighborBehaviour);
 
 		addBehaviour(parallelBehaviour);
@@ -152,8 +130,7 @@ public class HumanAgent extends Agent {
 
 			@Override
 			protected void onTick() {
-//				System.out.println("Agent " + getLocalName());
-//				System.out.println("Status:" + parallelBehaviour.done());
+
 				if(parallelBehaviour.done()) {
 					setUpIteration();
 
@@ -287,7 +264,7 @@ public class HumanAgent extends Agent {
 	/**
 	 * Get corruption aversion and your state
 	 */
-	private String getResponseToken() {
+	public String getResponseToken() {
 		return getCorruptionAversion() + PARAMS_SEPARATOR 
 				+ getCurrentState().getStateName();
 	}
@@ -443,5 +420,17 @@ public class HumanAgent extends Agent {
 
 	public Double getMaxProbabilityToArrested() {
 		return maxProbabilityToArrested;
+	}
+
+	public Vector<Integer> getNeighborhood() {
+		return neighborhood;
+	}
+
+	public void setNeighborhood(Vector<Integer> neighborhood) {
+		this.neighborhood = neighborhood;
+	}
+
+	public Map<Integer, NeighborStatus> getNeighborsStatus() {
+		return neighborsStatus;
 	}
 }

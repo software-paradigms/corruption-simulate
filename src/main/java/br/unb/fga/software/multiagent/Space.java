@@ -1,17 +1,10 @@
 package br.unb.fga.software.multiagent;
 
-import java.util.ArrayList;
-
 import br.unb.fga.software.multiagent.agent.HumanAgent;
 import jade.core.AID;
 import jade.core.Agent;
-import jade.core.Profile;
-import jade.core.ProfileImpl;
-import jade.core.Runtime;
 import jade.core.behaviours.CyclicBehaviour;
-import jade.core.behaviours.TickerBehaviour;
 import jade.lang.acl.ACLMessage;
-import jade.wrapper.AgentContainer;
 import jade.wrapper.StaleProxyException;
 
 public class Space extends Agent {
@@ -92,10 +85,7 @@ public class Space extends Agent {
 							break;
 					} 
 					
-					System.out.println("--------------------------------------");
-					System.out.println(totalResponse);
-					if(totalResponse == getSpaceLenght()*getSpaceLenght())
-					{
+					if(totalResponse == getSpaceLenght()*getSpaceLenght()) {
 						for (Integer i = 0; i < getSpaceLenght() * getSpaceLenght(); i++) {
 							ACLMessage stateInform = new ACLMessage(ACLMessage.INFORM);
 							stateInform.addReceiver(new AID(i.toString(), AID.ISLOCALNAME));
