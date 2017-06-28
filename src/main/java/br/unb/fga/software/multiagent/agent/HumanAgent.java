@@ -6,13 +6,11 @@ import java.util.Vector;
 import java.util.concurrent.ThreadLocalRandom;
 
 import br.unb.fga.software.multiagent.AgentState;
+import br.unb.fga.software.multiagent.behaviour.AgentUpdaterBehaviour;
 import br.unb.fga.software.multiagent.behaviour.ObserveNeighborBehaviour;
 import br.unb.fga.software.multiagent.behaviour.ResponseStatusBehaviour;
-import jade.core.AID;
 import jade.core.Agent;
 import jade.core.behaviours.ParallelBehaviour;
-import jade.core.behaviours.TickerBehaviour;
-import jade.lang.acl.ACLMessage;
 
 public class HumanAgent extends Agent {
 
@@ -54,7 +52,7 @@ public class HumanAgent extends Agent {
 	
 	private Map<Integer, NeighborStatus> neighborsStatus;
 	
-	private boolean canStart = true;
+	private boolean canStartObserveNeighbors = true;
 
 	@Override
 	protected void setup() {
@@ -69,33 +67,11 @@ public class HumanAgent extends Agent {
 		parallelBehaviour.addSubBehaviour(requestNeighborBehaviour);
 		parallelBehaviour.addSubBehaviour(responseNeighborBehaviour);
 
+		// Runs first time
 		addBehaviour(parallelBehaviour);
 
-		// Should refresh simulation every time, should be syncronized with
-		addBehaviour(new TickerBehaviour(this, 1000) {
-
-			private static final long serialVersionUID = 1L;
-
-			@Override
-			protected void onTick() {
-
-				if(parallelBehaviour.done()) {
-					setUpIteration();
-
-					ACLMessage stateInform = new ACLMessage(ACLMessage.INFORM);
-					stateInform.addReceiver(new AID("space", AID.ISLOCALNAME));
-					
-					stateInform.setContent(getCurrentState().getStateName());
-					send(stateInform);
-					
-					neighborsStatus.clear();
-				} if(canStart()) {
-					parallelBehaviour.reset();
-					addBehaviour(parallelBehaviour);
-					canStart = false;
-				}
-			}
-		});
+		// Should refresh simulation every time
+		addBehaviour(new AgentUpdaterBehaviour(this, 1000, parallelBehaviour));
 	}
 
 	private void setInitialAgentAttributes() {
@@ -119,7 +95,7 @@ public class HumanAgent extends Agent {
 		setDangerOfArrest();
 	}
 
-	private void setUpIteration() {
+	public void setUpIteration() {
 		// (av)it
 		setCorruptionAversionAround();
 		// bit
@@ -393,15 +369,19 @@ public class HumanAgent extends Agent {
 		return neighborsStatus;
 	}
 
-	public boolean canStart() {
-		return canStart;
+	public boolean canStartObserveNeighbors() {
+		return canStartObserveNeighbors;
 	}
 
-	public void setCanStart(boolean canStart) {
-		this.canStart = canStart;
+	public void setCanStartObserveNeighbors(boolean canStartObserveNeighbors) {
+		this.canStartObserveNeighbors = canStartObserveNeighbors;
 	}
 
 	public void updateNeighborsStatus(Integer agentID, NeighborStatus neighborStatus) {
 		this.neighborsStatus.put(agentID, neighborStatus);
+	}
+
+	public void clearNeighborsStatus() {
+		this.neighborsStatus.clear();
 	}
 }

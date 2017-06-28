@@ -23,7 +23,7 @@ public class ResponseStatusBehaviour extends SimpleBehaviour {
 		if (tokenResponse != null) {
 			// Space sends message? So restart parallel messages to all agents 
 			if (isSpaceThatSend(tokenResponse)) {
-				agent.setCanStart(true);
+				agent.setCanStartObserveNeighbors(true);
 			} else {
 				// Well, if anyone sends me a message, he is one neighbor
 				if (!amsIsTryingTalk(tokenResponse)) {
