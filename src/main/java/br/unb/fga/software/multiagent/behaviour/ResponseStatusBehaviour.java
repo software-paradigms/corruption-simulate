@@ -21,30 +21,21 @@ public class ResponseStatusBehaviour extends SimpleBehaviour {
 		ACLMessage tokenResponse = agent.receive();
 
 		if (tokenResponse != null) {
-			// Space sends message? So restart parallel messages to all agents 
-			if (isSpaceThatSend(tokenResponse)) {
-				agent.setCanStartObserveNeighbors(true);
-			} else {
-				// Well, if anyone sends me a message, he is one neighbor
-				if (!amsIsTryingTalk(tokenResponse)) {
-					updateNeighborStatus(tokenResponse);
+			// Well, if anyone sends me a message, he is one neighbor
+			if (!amsIsTryingTalk(tokenResponse)) {
+				updateNeighborStatus(tokenResponse);
 
-					// Now reply to this sender
-					ACLMessage reply = tokenResponse.createReply();
+				// Now reply to this sender
+				ACLMessage reply = tokenResponse.createReply();
 
-					String content = agent.getResponseToken();
-					reply.setContent(content);
-				}
+				String content = agent.getResponseToken();
+				reply.setContent(content);
 			}
 		}
 	}
 
 	private boolean amsIsTryingTalk(ACLMessage tokenResponse) {
 		return tokenResponse.getSender().getLocalName().equals("ams");
-	}
-
-	private boolean isSpaceThatSend(ACLMessage tokenResponse) {
-		return tokenResponse.getSender().getLocalName().equals("space");
 	}
 
 	/**

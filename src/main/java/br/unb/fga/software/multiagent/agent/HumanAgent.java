@@ -51,8 +51,6 @@ public class HumanAgent extends Agent {
 	private Vector<Integer> neighborhood;
 	
 	private Map<Integer, NeighborStatus> neighborsStatus;
-	
-	private boolean canStartObserveNeighbors = true;
 
 	@Override
 	protected void setup() {
@@ -369,19 +367,16 @@ public class HumanAgent extends Agent {
 		return neighborsStatus;
 	}
 
-	public boolean canStartObserveNeighbors() {
-		return canStartObserveNeighbors;
-	}
-
-	public void setCanStartObserveNeighbors(boolean canStartObserveNeighbors) {
-		this.canStartObserveNeighbors = canStartObserveNeighbors;
-	}
-
 	public void updateNeighborsStatus(Integer agentID, NeighborStatus neighborStatus) {
 		this.neighborsStatus.put(agentID, neighborStatus);
 	}
 
 	public void clearNeighborsStatus() {
 		this.neighborsStatus.clear();
+	}
+
+	public Integer getId() {
+		Integer id = Integer.valueOf(getAID().getLocalName());
+		return id;
 	}
 }
