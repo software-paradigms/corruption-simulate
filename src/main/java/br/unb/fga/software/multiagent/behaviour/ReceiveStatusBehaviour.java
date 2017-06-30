@@ -1,5 +1,8 @@
 package br.unb.fga.software.multiagent.behaviour;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import br.unb.fga.software.multiagent.AgentMultiton;
 import br.unb.fga.software.multiagent.Space;
 import br.unb.fga.software.multiagent.SpaceWindow;
@@ -9,6 +12,8 @@ import jade.core.behaviours.CyclicBehaviour;
 public class ReceiveStatusBehaviour extends CyclicBehaviour {
 
 	private static final long serialVersionUID = 1L;
+
+	private static final Logger logger = LoggerFactory.getLogger(ReceiveStatusBehaviour.class);
 
 	private Integer spaceLength;
 	private SpaceWindow spaceGUI;
@@ -25,6 +30,8 @@ public class ReceiveStatusBehaviour extends CyclicBehaviour {
 	@Override
 	public void action() {
 		if(Space.size() == getSpaceLength()) {
+			logger.debug("New iteration, should update space now!");
+
 			for(Integer id = 0; id < getSpaceLength(); id++) {
 				switch (Space.get(id.toString())) {
 					case CORRUPT:

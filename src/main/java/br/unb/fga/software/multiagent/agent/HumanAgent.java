@@ -5,6 +5,9 @@ import java.util.Map;
 import java.util.Vector;
 import java.util.concurrent.ThreadLocalRandom;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import br.unb.fga.software.multiagent.AgentState;
 import br.unb.fga.software.multiagent.behaviour.AgentUpdaterBehaviour;
 import br.unb.fga.software.multiagent.behaviour.ObserveNeighborBehaviour;
@@ -16,17 +19,19 @@ public class HumanAgent extends Agent {
 
 	private static final long serialVersionUID = 1L;
 	
+	private static final Logger logger = LoggerFactory.getLogger(HumanAgent.class);
+	
 	public static final String INDEXES_SEPARATOR = "x";
 
 	public static final String PARAMS_SEPARATOR = ";";
 
-	private static final Double TO_START_CORRUPT = 0.3;
+	private static final Double TO_START_CORRUPT = 0.5;
 
-	private static final double ARRESTED_PROBABILITY = 0.7; 
+	private static final double ARRESTED_PROBABILITY = 0.3; 
 	
-	private final Double maxProbabilityToArrested = 0.95;
+	private final Double maxProbabilityToArrested = 0.65;
 	
-	private Double costOfPunishment = 3.2;
+	private Double costOfPunishment = 1.2;
 	
 	// Between [0, 1], starts with average 0,5 and variance 0,25
 	private Double corruptionAversionInitial;
@@ -54,7 +59,6 @@ public class HumanAgent extends Agent {
 
 	@Override
 	protected void setup() {
-		
 		setInitialAgentAttributes();
 
 		ObserveNeighborBehaviour requestNeighborBehaviour = new ObserveNeighborBehaviour(this); 
@@ -69,7 +73,7 @@ public class HumanAgent extends Agent {
 		addBehaviour(parallelBehaviour);
 
 		// Should refresh simulation every time
-		addBehaviour(new AgentUpdaterBehaviour(this, 1000, parallelBehaviour));
+		addBehaviour(new AgentUpdaterBehaviour(this, 3000, parallelBehaviour));
 	}
 
 	private void setInitialAgentAttributes() {
@@ -82,6 +86,8 @@ public class HumanAgent extends Agent {
 		} else {
 			setCurrentState(AgentState.HONEST);
 		}
+		
+		logger.info("Agent " + getLocalName() + " starts " + getCurrentState().getStateName());
 
 		this.arrestProbabilityObserved = 0.0;
 
