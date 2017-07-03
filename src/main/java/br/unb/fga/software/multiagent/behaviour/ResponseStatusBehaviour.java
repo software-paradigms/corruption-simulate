@@ -11,13 +11,23 @@ public class ResponseStatusBehaviour extends SimpleBehaviour {
 	private static final long serialVersionUID = 1L;
 
 	private HumanAgent agent;
+	private ObserveNeighborBehaviour observeNeighborBehaviour;
 
 	public ResponseStatusBehaviour(HumanAgent agent) {
 		this.agent = agent;
 	}
 
 	@Override
+	public void onStart() {
+		observeNeighborBehaviour = new ObserveNeighborBehaviour(agent);
+		observeNeighborBehaviour.action();
+		super.onStart();
+	}
+
+	@Override
 	public void action() {
+		while(!observeNeighborBehaviour.done());
+
 		ACLMessage tokenResponse = agent.receive();
 
 		if (tokenResponse != null) {

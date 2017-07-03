@@ -5,7 +5,6 @@ import org.slf4j.LoggerFactory;
 
 import br.unb.fga.software.multiagent.Space;
 import br.unb.fga.software.multiagent.agent.HumanAgent;
-import jade.core.behaviours.ParallelBehaviour;
 import jade.core.behaviours.TickerBehaviour;
 
 public class AgentUpdaterBehaviour extends TickerBehaviour {
@@ -14,11 +13,11 @@ public class AgentUpdaterBehaviour extends TickerBehaviour {
 	
 	private static final Logger logger = LoggerFactory.getLogger(AgentUpdaterBehaviour.class);
 
-	private ParallelBehaviour behaviour;
+	private ResponseStatusBehaviour behaviour;
 	
 	private boolean alreadyRun;
 
-	public AgentUpdaterBehaviour(HumanAgent agent, long clock, ParallelBehaviour behaviour) {
+	public AgentUpdaterBehaviour(HumanAgent agent, long clock, ResponseStatusBehaviour behaviour) {
 		super(agent, clock);
 
 		this.behaviour = behaviour;

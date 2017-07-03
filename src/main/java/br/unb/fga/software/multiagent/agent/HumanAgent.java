@@ -10,10 +10,8 @@ import org.slf4j.LoggerFactory;
 
 import br.unb.fga.software.multiagent.AgentState;
 import br.unb.fga.software.multiagent.behaviour.AgentUpdaterBehaviour;
-import br.unb.fga.software.multiagent.behaviour.ObserveNeighborBehaviour;
 import br.unb.fga.software.multiagent.behaviour.ResponseStatusBehaviour;
 import jade.core.Agent;
-import jade.core.behaviours.ParallelBehaviour;
 
 public class HumanAgent extends Agent {
 
@@ -27,9 +25,9 @@ public class HumanAgent extends Agent {
 
 	private static final double TO_START_CORRUPT = 0.5;
 
-	private static final double ARRESTED_PROBABILITY = 0.5; 
+	private static final double ARRESTED_PROBABILITY = 0.7; 
 	
-	private static final double MAX_PROBABILITY_TO_BE_ARRESTED = 0.05;
+	private static final double MAX_PROBABILITY_TO_BE_ARRESTED = 0.95;
 	
 	private static final double COST_OF_PUNISHMENT = 1.6;
 	
@@ -63,19 +61,10 @@ public class HumanAgent extends Agent {
 		
 		clearNeighborsStatus();
 
-		ObserveNeighborBehaviour requestNeighborBehaviour = new ObserveNeighborBehaviour(this);
-
 		ResponseStatusBehaviour responseNeighborBehaviour = new ResponseStatusBehaviour(this);
 
-		final ParallelBehaviour parallelBehaviour = new ParallelBehaviour(ParallelBehaviour.WHEN_ALL);
-		parallelBehaviour.addSubBehaviour(requestNeighborBehaviour);
-		parallelBehaviour.addSubBehaviour(responseNeighborBehaviour);
-
-		// Runs first time
-		addBehaviour(parallelBehaviour);
-
 		// Should refresh simulation every time
-		addBehaviour(new AgentUpdaterBehaviour(this, 2000, parallelBehaviour));
+		addBehaviour(new AgentUpdaterBehaviour(this, 1000, responseNeighborBehaviour));
 	}
 
 	private void setInitialAgentAttributes() {

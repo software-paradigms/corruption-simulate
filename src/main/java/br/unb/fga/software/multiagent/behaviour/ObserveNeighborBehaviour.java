@@ -2,10 +2,10 @@ package br.unb.fga.software.multiagent.behaviour;
 
 import br.unb.fga.software.multiagent.agent.HumanAgent;
 import jade.core.AID;
-import jade.core.behaviours.SimpleBehaviour;
+import jade.core.behaviours.OneShotBehaviour;
 import jade.lang.acl.ACLMessage;
 
-public class ObserveNeighborBehaviour extends SimpleBehaviour {
+public class ObserveNeighborBehaviour extends OneShotBehaviour {
 	private static final long serialVersionUID = 1L;
 	
 	private HumanAgent agent;
@@ -28,10 +28,5 @@ public class ObserveNeighborBehaviour extends SimpleBehaviour {
 				// if already have neighbor status, not do anything
 			}
 		}
-	}
-
-	@Override
-	public boolean done() {
-		return agent.hasFinishIteration();
 	}
 }
