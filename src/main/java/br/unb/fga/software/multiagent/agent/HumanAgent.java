@@ -25,13 +25,13 @@ public class HumanAgent extends Agent {
 
 	public static final String PARAMS_SEPARATOR = ";";
 
-	private static final Double TO_START_CORRUPT = 0.5;
+	private static final double TO_START_CORRUPT = 0.5;
 
-	private static final double ARRESTED_PROBABILITY = 0.3; 
+	private static final double ARRESTED_PROBABILITY = 0.5; 
 	
-	private final Double maxProbabilityToArrested = 0.65;
+	private static final double MAX_PROBABILITY_TO_BE_ARRESTED = 0.05;
 	
-	private Double costOfPunishment = 1.2;
+	private static final double COST_OF_PUNISHMENT = 1.6;
 	
 	// Between [0, 1], starts with average 0,5 and variance 0,25
 	private Double corruptionAversionInitial;
@@ -60,8 +60,10 @@ public class HumanAgent extends Agent {
 	@Override
 	protected void setup() {
 		setInitialAgentAttributes();
+		
+		clearNeighborsStatus();
 
-		ObserveNeighborBehaviour requestNeighborBehaviour = new ObserveNeighborBehaviour(this); 
+		ObserveNeighborBehaviour requestNeighborBehaviour = new ObserveNeighborBehaviour(this);
 
 		ResponseStatusBehaviour responseNeighborBehaviour = new ResponseStatusBehaviour(this);
 
@@ -73,7 +75,7 @@ public class HumanAgent extends Agent {
 		addBehaviour(parallelBehaviour);
 
 		// Should refresh simulation every time
-		addBehaviour(new AgentUpdaterBehaviour(this, 3000, parallelBehaviour));
+		addBehaviour(new AgentUpdaterBehaviour(this, 2000, parallelBehaviour));
 	}
 
 	private void setInitialAgentAttributes() {
@@ -152,13 +154,15 @@ public class HumanAgent extends Agent {
 	}
 
 	private double getRealArrestedCaptured() {
-		double p = getMaxProbabilityToArrested();
-		p *= (count(AgentState.HONEST) + 1.0)/(neighborhood.size() + 2);
-		return p;
+		double honestTax = (count(AgentState.HONEST) + 1.0);
+		double realProbabilityToBeArrested = MAX_PROBABILITY_TO_BE_ARRESTED 
+				* honestTax /(neighborhood.size() + 1.0);
+
+		return realProbabilityToBeArrested;
 	}
 
 	/**
-	 * Watch status of unique agent
+	 * Watch status to monitors one unique agent
 	 */
 	private void watchAgent(int agentID) {
 		if(Integer.valueOf(getLocalName()) == agentID) {
@@ -168,11 +172,11 @@ public class HumanAgent extends Agent {
 			System.out.println("pit = " + getArrestProbabilityObserved());
 			System.out.println("cit = " + getDangerOfArrest());
 			System.out.println("Pit = " + getRealArrestedCaptured());
+			System.out.println("My state is " + getCurrentState().getStateName());
+			logger.info("My neighbors are " + neighborhood.toString());
 			for(NeighborStatus ns : neighborsStatus.values()) 
-				System.out.println("Vizinhos is " + ns.getState());
-			System.out.println("Corrupts is" + count(AgentState.CORRUPT));
-			System.out.println("Honests is" + count(AgentState.HONEST));
-			System.out.println("All is " + neighborhood.size());
+				System.out.println("Vizinho  is " + ns.getState().getStateName());
+			System.out.println("All neighbors is " + neighborhood.size());
 		}
 	}
 	
@@ -213,7 +217,7 @@ public class HumanAgent extends Agent {
 	 */
 	public boolean isCorrupt() {
 		Double corruptionMotivation = ((1 - getCorruptionAversion()) / getArrestProbabilityObserved());
-		boolean isCorruptInThisRound = corruptionMotivation > getCostOfPunishment();
+		boolean isCorruptInThisRound = corruptionMotivation > COST_OF_PUNISHMENT;
 
 		return isCorruptInThisRound;
 	}
@@ -301,10 +305,6 @@ public class HumanAgent extends Agent {
 		this.currentState = currentState;
 	}
 
-	public Double getCostOfPunishment() {
-		return costOfPunishment;
-	}
-
 	public Vector<Integer> setNeighborhood(String agentID) {
 		neighborhood = new Vector<Integer>();
 
@@ -357,10 +357,6 @@ public class HumanAgent extends Agent {
 		return location;
 	}
 
-	public Double getMaxProbabilityToArrested() {
-		return maxProbabilityToArrested;
-	}
-
 	public Vector<Integer> getNeighborhood() {
 		return neighborhood;
 	}
@@ -384,5 +380,9 @@ public class HumanAgent extends Agent {
 	public Integer getId() {
 		Integer id = Integer.valueOf(getAID().getLocalName());
 		return id;
+	}
+
+	public boolean hasFinishIteration() {
+		return getNeighborsStatus().size() == getNeighborhood().size();
 	}
 }

@@ -22,7 +22,7 @@ public class ResponseStatusBehaviour extends SimpleBehaviour {
 
 		if (tokenResponse != null) {
 			// Well, if anyone sends me a message, he is one neighbor
-			if (!amsIsTryingTalk(tokenResponse)) {
+			if (tokenResponse.getPerformative() == ACLMessage.REQUEST) {
 				updateNeighborStatus(tokenResponse);
 
 				// Now reply to this sender
@@ -32,10 +32,6 @@ public class ResponseStatusBehaviour extends SimpleBehaviour {
 				reply.setContent(content);
 			}
 		}
-	}
-
-	private boolean amsIsTryingTalk(ACLMessage tokenResponse) {
-		return tokenResponse.getSender().getLocalName().equals("ams");
 	}
 
 	/**
@@ -49,12 +45,14 @@ public class ResponseStatusBehaviour extends SimpleBehaviour {
 		NeighborStatus neighborStatus = new NeighborStatus(Double.valueOf(token[0]),
 				AgentState.getByString(token[1]));
 
-		agent.updateNeighborsStatus(agentID, neighborStatus);
+		if(!agent.getNeighborsStatus().containsKey(agentID)) {
+			agent.updateNeighborsStatus(agentID, neighborStatus);			
+		}
 	}
 
 	@Override
 	public boolean done() {
-		return agent.getNeighborsStatus().size() == agent.getNeighborhood().size();
+		return agent.hasFinishIteration();
 	}
 
 }
