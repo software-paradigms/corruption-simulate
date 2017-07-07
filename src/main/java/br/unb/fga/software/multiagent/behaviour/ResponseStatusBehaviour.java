@@ -11,40 +11,37 @@ public class ResponseStatusBehaviour extends SimpleBehaviour {
 	private static final long serialVersionUID = 1L;
 
 	private HumanAgent agent;
+	private ObserveNeighborBehaviour observeNeighborBehaviour;
 
 	public ResponseStatusBehaviour(HumanAgent agent) {
 		this.agent = agent;
 	}
 
 	@Override
+	public void onStart() {
+		observeNeighborBehaviour = new ObserveNeighborBehaviour(agent);
+		observeNeighborBehaviour.action();
+		super.onStart();
+	}
+
+	@Override
 	public void action() {
+		while(!observeNeighborBehaviour.done());
+
 		ACLMessage tokenResponse = agent.receive();
 
 		if (tokenResponse != null) {
-			// Space sends message? So restart parallel messages to all agents 
-			if (isSpaceThatSend(tokenResponse)) {
-				agent.setCanStart(true);
-			} else {
-				// Well, if anyone sends me a message, he is one neighbor
-				if (!amsIsTryingTalk(tokenResponse)) {
-					updateNeighborStatus(tokenResponse);
+			// Well, if anyone sends me a message, he is one neighbor
+			if (tokenResponse.getPerformative() == ACLMessage.REQUEST) {
+				updateNeighborStatus(tokenResponse);
 
-					// Now reply to this sender
-					ACLMessage reply = tokenResponse.createReply();
+				// Now reply to this sender
+				ACLMessage reply = tokenResponse.createReply();
 
-					String content = agent.getResponseToken();
-					reply.setContent(content);
-				}
+				String content = agent.getResponseToken();
+				reply.setContent(content);
 			}
 		}
-	}
-
-	private boolean amsIsTryingTalk(ACLMessage tokenResponse) {
-		return tokenResponse.getSender().getLocalName().equals("ams");
-	}
-
-	private boolean isSpaceThatSend(ACLMessage tokenResponse) {
-		return tokenResponse.getSender().getLocalName().equals("space");
 	}
 
 	/**
@@ -58,12 +55,14 @@ public class ResponseStatusBehaviour extends SimpleBehaviour {
 		NeighborStatus neighborStatus = new NeighborStatus(Double.valueOf(token[0]),
 				AgentState.getByString(token[1]));
 
-		agent.updateNeighborsStatus(agentID, neighborStatus);
+		if(!agent.getNeighborsStatus().containsKey(agentID)) {
+			agent.updateNeighborsStatus(agentID, neighborStatus);			
+		}
 	}
 
 	@Override
 	public boolean done() {
-		return agent.getNeighborsStatus().size() == agent.getNeighborhood().size();
+		return agent.hasFinishIteration();
 	}
 
 }

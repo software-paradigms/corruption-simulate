@@ -5,30 +5,31 @@ import java.util.Map;
 import java.util.Vector;
 import java.util.concurrent.ThreadLocalRandom;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import br.unb.fga.software.multiagent.AgentState;
-import br.unb.fga.software.multiagent.behaviour.ObserveNeighborBehaviour;
+import br.unb.fga.software.multiagent.behaviour.AgentUpdaterBehaviour;
 import br.unb.fga.software.multiagent.behaviour.ResponseStatusBehaviour;
-import jade.core.AID;
 import jade.core.Agent;
-import jade.core.behaviours.ParallelBehaviour;
-import jade.core.behaviours.TickerBehaviour;
-import jade.lang.acl.ACLMessage;
 
 public class HumanAgent extends Agent {
 
 	private static final long serialVersionUID = 1L;
 	
+	private static final Logger logger = LoggerFactory.getLogger(HumanAgent.class);
+	
 	public static final String INDEXES_SEPARATOR = "x";
 
 	public static final String PARAMS_SEPARATOR = ";";
 
-	private static final Double TO_START_CORRUPT = 0.3;
+	private static final double TO_START_CORRUPT = 0.5;
 
 	private static final double ARRESTED_PROBABILITY = 0.7; 
 	
-	private final Double maxProbabilityToArrested = 0.95;
+	private static final double MAX_PROBABILITY_TO_BE_ARRESTED = 0.95;
 	
-	private Double costOfPunishment = 3.2;
+	private static final double COST_OF_PUNISHMENT = 1.6;
 	
 	// Between [0, 1], starts with average 0,5 and variance 0,25
 	private Double corruptionAversionInitial;
@@ -53,49 +54,17 @@ public class HumanAgent extends Agent {
 	private Vector<Integer> neighborhood;
 	
 	private Map<Integer, NeighborStatus> neighborsStatus;
-	
-	private boolean canStart = true;
 
 	@Override
 	protected void setup() {
-		
 		setInitialAgentAttributes();
-
-		ObserveNeighborBehaviour requestNeighborBehaviour = new ObserveNeighborBehaviour(this); 
+		
+		clearNeighborsStatus();
 
 		ResponseStatusBehaviour responseNeighborBehaviour = new ResponseStatusBehaviour(this);
 
-		final ParallelBehaviour parallelBehaviour = new ParallelBehaviour(ParallelBehaviour.WHEN_ALL);
-		parallelBehaviour.addSubBehaviour(requestNeighborBehaviour);
-		parallelBehaviour.addSubBehaviour(responseNeighborBehaviour);
-
-		addBehaviour(parallelBehaviour);
-
-		// Should refresh simulation every time, should be syncronized with
-		addBehaviour(new TickerBehaviour(this, 1000) {
-
-			private static final long serialVersionUID = 1L;
-
-			@Override
-			protected void onTick() {
-
-				if(parallelBehaviour.done()) {
-					setUpIteration();
-
-					ACLMessage stateInform = new ACLMessage(ACLMessage.INFORM);
-					stateInform.addReceiver(new AID("space", AID.ISLOCALNAME));
-					
-					stateInform.setContent(getCurrentState().getStateName());
-					send(stateInform);
-					
-					neighborsStatus.clear();
-				} if(canStart()) {
-					parallelBehaviour.reset();
-					addBehaviour(parallelBehaviour);
-					canStart = false;
-				}
-			}
-		});
+		// Should refresh simulation every time
+		addBehaviour(new AgentUpdaterBehaviour(this, 1000, responseNeighborBehaviour));
 	}
 
 	private void setInitialAgentAttributes() {
@@ -108,6 +77,8 @@ public class HumanAgent extends Agent {
 		} else {
 			setCurrentState(AgentState.HONEST);
 		}
+		
+		logger.info("Agent " + getLocalName() + " starts " + getCurrentState().getStateName());
 
 		this.arrestProbabilityObserved = 0.0;
 
@@ -119,7 +90,7 @@ public class HumanAgent extends Agent {
 		setDangerOfArrest();
 	}
 
-	private void setUpIteration() {
+	public void setUpIteration() {
 		// (av)it
 		setCorruptionAversionAround();
 		// bit
@@ -172,13 +143,15 @@ public class HumanAgent extends Agent {
 	}
 
 	private double getRealArrestedCaptured() {
-		double p = getMaxProbabilityToArrested();
-		p *= (count(AgentState.HONEST) + 1.0)/(neighborhood.size() + 2);
-		return p;
+		double honestTax = (count(AgentState.HONEST) + 1.0);
+		double realProbabilityToBeArrested = MAX_PROBABILITY_TO_BE_ARRESTED 
+				* honestTax /(neighborhood.size() + 1.0);
+
+		return realProbabilityToBeArrested;
 	}
 
 	/**
-	 * Watch status of unique agent
+	 * Watch status to monitors one unique agent
 	 */
 	private void watchAgent(int agentID) {
 		if(Integer.valueOf(getLocalName()) == agentID) {
@@ -188,11 +161,11 @@ public class HumanAgent extends Agent {
 			System.out.println("pit = " + getArrestProbabilityObserved());
 			System.out.println("cit = " + getDangerOfArrest());
 			System.out.println("Pit = " + getRealArrestedCaptured());
+			System.out.println("My state is " + getCurrentState().getStateName());
+			logger.info("My neighbors are " + neighborhood.toString());
 			for(NeighborStatus ns : neighborsStatus.values()) 
-				System.out.println("Vizinhos is " + ns.getState());
-			System.out.println("Corrupts is" + count(AgentState.CORRUPT));
-			System.out.println("Honests is" + count(AgentState.HONEST));
-			System.out.println("All is " + neighborhood.size());
+				System.out.println("Vizinho  is " + ns.getState().getStateName());
+			System.out.println("All neighbors is " + neighborhood.size());
 		}
 	}
 	
@@ -233,7 +206,7 @@ public class HumanAgent extends Agent {
 	 */
 	public boolean isCorrupt() {
 		Double corruptionMotivation = ((1 - getCorruptionAversion()) / getArrestProbabilityObserved());
-		boolean isCorruptInThisRound = corruptionMotivation > getCostOfPunishment();
+		boolean isCorruptInThisRound = corruptionMotivation > COST_OF_PUNISHMENT;
 
 		return isCorruptInThisRound;
 	}
@@ -321,10 +294,6 @@ public class HumanAgent extends Agent {
 		this.currentState = currentState;
 	}
 
-	public Double getCostOfPunishment() {
-		return costOfPunishment;
-	}
-
 	public Vector<Integer> setNeighborhood(String agentID) {
 		neighborhood = new Vector<Integer>();
 
@@ -377,10 +346,6 @@ public class HumanAgent extends Agent {
 		return location;
 	}
 
-	public Double getMaxProbabilityToArrested() {
-		return maxProbabilityToArrested;
-	}
-
 	public Vector<Integer> getNeighborhood() {
 		return neighborhood;
 	}
@@ -393,15 +358,20 @@ public class HumanAgent extends Agent {
 		return neighborsStatus;
 	}
 
-	public boolean canStart() {
-		return canStart;
-	}
-
-	public void setCanStart(boolean canStart) {
-		this.canStart = canStart;
-	}
-
 	public void updateNeighborsStatus(Integer agentID, NeighborStatus neighborStatus) {
 		this.neighborsStatus.put(agentID, neighborStatus);
+	}
+
+	public void clearNeighborsStatus() {
+		this.neighborsStatus.clear();
+	}
+
+	public Integer getId() {
+		Integer id = Integer.valueOf(getAID().getLocalName());
+		return id;
+	}
+
+	public boolean hasFinishIteration() {
+		return getNeighborsStatus().size() == getNeighborhood().size();
 	}
 }
